@@ -456,6 +456,9 @@ AUTOR_PERFIL = {
 #     (1 GRÁFICO POR VISTA EN CATEGORÍA 2: VISTAS MACROECONÓMICAS)
 # =============================================================================
 
+EXPERIENCIA_PROFESIONAL = AUTOR_PERFIL["experiencia"]
+FORMACION_ACADEMICA = AUTOR_PERFIL["formacion"]
+
 SUBCATEGORIAS_MACROECONOMICAS: List[Dict[str, object]] = [
     {
         "clave_sub": "sub_actividad",
@@ -8004,6 +8007,8 @@ OPCIONES_MODELOS_CANDIDATOS_SARIMAX: List[Tuple[str, str, Tuple[int, int, int], 
     ("SARIMAX(1,1,1)(1,0,1)_12", "(1,1,1)(1,0,1)12 [D=0]", (1, 1, 1), (1, 0, 1, 12)),
     ("SARIMAX(1,1,0)(0,1,0)_12", "(1,1,0)(0,1,0)12 [Q=0]", (1, 1, 0), (0, 1, 0, 12)),
 ]
+
+CATALOGO_MODELOS_SARIMAX_CANDIDATOS = OPCIONES_MODELOS_CANDIDATOS_SARIMAX
 
 OPCIONES_ESCALA_PROYECCION_SARIMAX: List[Tuple[str, str]] = [
     ("nivel", "Índice (2018=100)"),

@@ -852,14 +852,21 @@ elif pantalla == "presentacion":
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         st.markdown("#### 💼 Trayectoria Profesional e Investigación")
-        for cargo, inst, per, det in ecopulse.EXPERIENCIA_PROFESIONAL:
-            with st.expander(f"**{cargo}** — {inst} ({per})", expanded=True):
-                st.write(det)
+        for item_exp in ecopulse.AUTOR_PERFIL.get("experiencia", []):
+            if isinstance(item_exp, (tuple, list)) and len(item_exp) >= 2:
+                tit_e, det_e = item_exp[0], item_exp[1]
+                with st.expander(f"**{tit_e}**", expanded=True):
+                    st.write(det_e)
+            else:
+                st.markdown(f"- {item_exp}")
     with col_p2:
         st.markdown("#### 🎓 Formación Académica y Postgrado")
-        for grado, inst, per, det in ecopulse.FORMACION_ACADEMICA:
-            with st.expander(f"**{grado}** — {inst} ({per})", expanded=True):
-                st.write(det)
+        for item_form in ecopulse.AUTOR_PERFIL.get("formacion", []):
+            if isinstance(item_form, (tuple, list)) and len(item_form) >= 2:
+                with st.expander(f"**{item_form[0]}**", expanded=True):
+                    st.write(item_form[1])
+            else:
+                st.markdown(f"🎓 **{item_form}**")
 
 
 # =============================================================================
@@ -1217,7 +1224,7 @@ else:
             )
             ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["corte_muestral"] = corte_s
         with cp2:
-            mod_s = st.selectbox("Especificación SARIMAX:", [m[0] for m in ecopulse.CATALOGO_MODELOS_SARIMAX_CANDIDATOS])
+            mod_s = st.selectbox("Especificación SARIMAX:", [m[0] for m in getattr(ecopulse, 'OPCIONES_MODELOS_CANDIDATOS_SARIMAX', [('SARIMAX(0,1,1)(0,1,1)_12', '(0,1,1)(0,1,1)12 Airline')])])
             ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["modelo_etiqueta"] = mod_s
         with cp3:
             unid_s = st.selectbox(
