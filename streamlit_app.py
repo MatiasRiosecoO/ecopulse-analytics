@@ -24,6 +24,14 @@ import io
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import importlib.util
+import os
+import sys
+
+os.environ["ECOPULSE_SKIP_PIP_BOOTSTRAP"] = "1"
+if "--no-gui" not in sys.argv:
+    sys.argv.append("--no-gui")
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -31,7 +39,71 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-import EcoPulse_Analytics as ecopulse
+
+def _cargar_modulo_ecopulse():
+    """
+    Busca y carga el motor principal sin importar si en GitHub / Windows se guardó
+    en minúsculas (`ecopulse_analytics.py`), con mayúsculas (`EcoPulse_Analytics.py`),
+    como `cuentas_nacionales_bcch.py` o en una subcarpeta del repositorio.
+    """
+    if "EcoPulse_Analytics" in sys.modules:
+        return sys.modules["EcoPulse_Analytics"]
+
+    dir_actual = Path(__file__).resolve().parent
+    directorios_busqueda = [dir_actual, Path.cwd(), dir_actual.parent]
+    for sub_d in dir_actual.iterdir():
+        if sub_d.is_dir() and not sub_d.name.startswith("."):
+            directorios_busqueda.append(sub_d)
+
+    nombres_preferidos = {
+        "ecopulse_analytics.py",
+        "cuentas_nacionales_bcch.py",
+        "ecopulse.py",
+    }
+    candidato_path = None
+
+    # 1. Búsqueda insensible a mayúsculas/minúsculas (resuelve el error en Linux / Streamlit Cloud)
+    for d_busq in directorios_busqueda:
+        if not d_busq.is_dir():
+            continue
+        for archivo_py in sorted(d_busq.glob("*.py")):
+            if archivo_py.name == Path(__file__).name:
+                continue
+            if archivo_py.name.lower() in nombres_preferidos or "ecopulse" in archivo_py.name.lower():
+                candidato_path = archivo_py
+                break
+        if candidato_path is not None:
+            break
+
+    # 2. Si tiene otro nombre distinto, buscar cualquier .py que contenga MonitorCuentasNacionales
+    if candidato_path is None:
+        for d_busq in directorios_busqueda:
+            if not d_busq.is_dir():
+                continue
+            for archivo_py in sorted(d_busq.glob("*.py")):
+                if archivo_py.name == Path(__file__).name:
+                    continue
+                try:
+                    txt_head = archivo_py.read_text(encoding="utf-8", errors="ignore")[:80000]
+                    if "MonitorCuentasNacionales" in txt_head:
+                        candidato_path = archivo_py
+                        break
+                except Exception:
+                    pass
+            if candidato_path is not None:
+                break
+
+    if candidato_path is not None:
+        spec = importlib.util.spec_from_file_location("EcoPulse_Analytics", str(candidato_path))
+        if spec is not None and spec.loader is not None:
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules["EcoPulse_Analytics"] = mod
+            spec.loader.exec_module(mod)
+            return mod
+    return None
+
+
+ecopulse = _cargar_modulo_ecopulse()
 
 
 # -----------------------------------------------------------------------------
@@ -43,6 +115,30 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+if ecopulse is None:
+    archivos_en_repo = [p.name for p in Path(__file__).resolve().parent.iterdir() if not p.name.startswith(".")]
+    st.error("⚠️ No se encontró el archivo `ecopulse_analytics.py` (o `EcoPulse_Analytics.py`) en tu repositorio de GitHub.")
+    st.markdown(
+        f"""
+        ### Cómo solucionarlo en 30 segundos:
+        Actualmente tu repositorio en GitHub (`/mount/src/ecopulse-analytics/`) solo contiene estos archivos: **`{', '.join(archivos_en_repo)}`**
+
+        1. Ve a tu repositorio en **GitHub** ➔ haz clic en **`Add file` ➔ `Upload files`**.
+        2. Sube tu archivo **`ecopulse_analytics.py`** (de tu carpeta `c:/Users/Matias/OneDrive/Escritorio/Análisis/app Análisis/ecopulse_analytics.py` o el `EcoPulse_Analytics.py` descargado de aquí) junto a `streamlit_app.py`.
+        3. Haz clic en el botón verde **`Commit changes`** (Streamlit Cloud se actualizará solo en 5 segundos).
+
+        ---
+        #### 💡 ¿Quieres probarla ahora mismo sin ir a GitHub? Sube tu `ecopulse_analytics.py` aquí abajo:
+        """
+    )
+    archivo_subido = st.file_uploader("Selecciona tu archivo `ecopulse_analytics.py` o `EcoPulse_Analytics.py`:", type=["py"])
+    if archivo_subido is not None:
+        ruta_destino = Path(__file__).resolve().parent / "EcoPulse_Analytics.py"
+        ruta_destino.write_bytes(archivo_subido.getvalue())
+        st.success("✓ Archivo cargado correctamente. Iniciando EcoPulse Analytics...")
+        st.rerun()
+    st.stop()
 
 if "modo_oscuro" not in st.session_state:
     st.session_state["modo_oscuro"] = False

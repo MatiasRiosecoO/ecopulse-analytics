@@ -173,7 +173,7 @@ def _asegurar_entorno_y_dependencias_inicio() -> None:
       intérprete actual; y si el intérprete actual no soporta `pip` o wheels binarios,
       delega automáticamente la ejecución al intérprete Python completo instalado en el PC.
     """
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) or os.environ.get("ECOPULSE_SKIP_PIP_BOOTSTRAP") == "1" or "streamlit" in sys.modules:
         return
 
     paquetes_esenciales = [
@@ -339,7 +339,7 @@ except ImportError:
     pass
 
 import matplotlib
-if "--no-gui" not in sys.argv:
+if "--no-gui" not in sys.argv and "streamlit" not in sys.modules:
     try:
         matplotlib.use("TkAgg")
     except Exception:
@@ -29758,7 +29758,7 @@ def sincronizar_copias_locales_script() -> Path:
     carpeta_instalacion.mkdir(parents=True, exist_ok=True)
     script_destino = carpeta_instalacion / "EcoPulse_Analytics.py"
 
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) or os.environ.get("ECOPULSE_SKIP_PIP_BOOTSTRAP") == "1" or "streamlit" in sys.modules:
         return script_destino
 
     home = Path.home()
@@ -30980,7 +30980,7 @@ def compilar_ejecutable_standalone_escritorio(preferir_pyinstaller: bool = False
       - Instala las librerías (`bcchapi`, `yfinance`, `pandas`, `numpy`, `matplotlib`, `pillow`, `requests`, `openpyxl`).
       - Deja `EcoPulse_Analytics.exe` en el Escritorio de ese otro PC y abre la aplicación.
     """
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) or os.environ.get("ECOPULSE_SKIP_PIP_BOOTSTRAP") == "1" or "streamlit" in sys.modules:
         return Path(sys.executable)
 
     carpeta_instalacion = RUTA_DIRECTORIO_APP
