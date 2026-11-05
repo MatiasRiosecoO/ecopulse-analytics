@@ -1,32 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EcoPulse Analytics — Aplicación Web Interactiva para Streamlit Community Cloud
-==============================================================================
+EcoPulse Analytics — Interfaz Web Idéntica a la Aplicación de Escritorio (Streamlit Cloud)
+==========================================================================================
 Autor: Matías Rioseco Oróstica
        Ingeniero Comercial | Magíster en Análisis Económico (c), FEN U. de Chile
 
-Archivo principal de despliegue web (`streamlit_app.py`) conectado directamente al
-motor analítico de `EcoPulse_Analytics.py`:
-  1. Categoría 1: Presentación Profesional y Trayectoria Académica.
-  2. Categoría 2: 73 Vistas Macroeconómicas organizadas en 9 Subcategorías (BDE BCCh, INE, DIPRES, BACI-CEPII, Clapes UC, CNEP).
-  3. Categoría 3: 8 Vistas de Cotizaciones Financieras y Commodities en Velas Japonesas (OHLC vía Yahoo Finance).
-  4. Categoría 4: 7 Vistas de Proyecciones Econométricas (SARIMAX IMACEC, PIB Anual USD con IMACEC Neto YTD, 4 Proyecciones Institucionales y Tablero Resumen en Tarjetas).
-  5. Categoría 5: Modelador Estructural Interactivo IS-LM-BP (Mundell-Fleming).
-  6. Categoría 6: 3 Instrumentos Interactivos de Cálculo:
-     - Calculadora de IPC (Modelo Oficial INE — https://calculadoraipc.ine.cl/)
-     - Calculadora de UF (Valores Oficiales Diarios SII — https://www.sii.cl/valores_y_fechas/uf/uf2026.htm)
-     - Calculadora de Tipo de Cambio (Conversor Divisas USD, EUR, CLP, UF y UTM — SII / BCCh)
+Replica en el navegador la arquitectura visual y de navegación exacta de la aplicación
+de escritorio `EcoPulse_Analytics.py`:
+  1. Banner Superior Institucional con Identidad, Buscador Rápido y Botón 🌙 Modo Oscuro / ☀️ Modo Claro.
+  2. Menú Principal en Grilla de 3×2 Tarjetas Ejecutivas para las 6 Categorías Principales
+     (con franja superior de color, insignia de categoría, contador, lista de ítems y botón de acción).
+  3. Subpantallas de Navegación en Grilla de 3 Columnas:
+     - Categoría 2: Grilla de 3×3 Tarjetas de las 9 Subcategorías Macroeconómicas ➔ Grilla de Vistas.
+     - Categorías 3, 4, 5 y 6: Grillas de Tarjetas de Cotizaciones, Proyecciones, Modelación y Calculadoras.
+  4. Vista Analítica a Pantalla Completa con Barra de Ruta Interactiva (Breadcrumb:
+     ◀ Ant. | Sig. ▶ | 🏠 Menú Principal ▸ Categoría ▸ Subcategoría ▸ Vista Actual) y Botones Rápidos de Filtro.
+  5. Las 3 Calculadoras Interactivas Nativas (IPC Oficial INE, UF Oficial Diaria SII 2026 y Tipo de Cambio).
 """
 
 from datetime import date
-import io
-from pathlib import Path
-from typing import Dict, List, Tuple
-
 import importlib.util
+import io
 import os
+from pathlib import Path
 import sys
+from typing import Dict, List, Optional, Tuple
 
 os.environ["ECOPULSE_SKIP_PIP_BOOTSTRAP"] = "1"
 if "--no-gui" not in sys.argv:
@@ -40,12 +39,10 @@ import pandas as pd
 import streamlit as st
 
 
+# -----------------------------------------------------------------------------
+# 1. CARGADOR AUTOMÁTICO INSENSIBLE A MAYÚSCULAS/MINÚSCULAS (LINUX / WINDOWS)
+# -----------------------------------------------------------------------------
 def _cargar_modulo_ecopulse():
-    """
-    Busca y carga el motor principal sin importar si en GitHub / Windows se guardó
-    en minúsculas (`ecopulse_analytics.py`), con mayúsculas (`EcoPulse_Analytics.py`),
-    como `cuentas_nacionales_bcch.py` o en una subcarpeta del repositorio.
-    """
     if "EcoPulse_Analytics" in sys.modules:
         return sys.modules["EcoPulse_Analytics"]
 
@@ -62,7 +59,6 @@ def _cargar_modulo_ecopulse():
     }
     candidato_path = None
 
-    # 1. Búsqueda insensible a mayúsculas/minúsculas (resuelve el error en Linux / Streamlit Cloud)
     for d_busq in directorios_busqueda:
         if not d_busq.is_dir():
             continue
@@ -75,7 +71,6 @@ def _cargar_modulo_ecopulse():
         if candidato_path is not None:
             break
 
-    # 2. Si tiene otro nombre distinto, buscar cualquier .py que contenga MonitorCuentasNacionales
     if candidato_path is None:
         for d_busq in directorios_busqueda:
             if not d_busq.is_dir():
@@ -105,15 +100,11 @@ def _cargar_modulo_ecopulse():
 
 ecopulse = _cargar_modulo_ecopulse()
 
-
-# -----------------------------------------------------------------------------
-# 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (MODO CLARO / MODO OSCURO OBSIDIAN)
-# -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="EcoPulse Analytics — Monitor Macroeconómico de Chile",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 if ecopulse is None:
@@ -125,8 +116,8 @@ if ecopulse is None:
         Actualmente tu repositorio en GitHub (`/mount/src/ecopulse-analytics/`) solo contiene estos archivos: **`{', '.join(archivos_en_repo)}`**
 
         1. Ve a tu repositorio en **GitHub** ➔ haz clic en **`Add file` ➔ `Upload files`**.
-        2. Sube tu archivo **`ecopulse_analytics.py`** (de tu carpeta `c:/Users/Matias/OneDrive/Escritorio/Análisis/app Análisis/ecopulse_analytics.py` o el `EcoPulse_Analytics.py` descargado de aquí) junto a `streamlit_app.py`.
-        3. Haz clic en el botón verde **`Commit changes`** (Streamlit Cloud se actualizará solo en 5 segundos).
+        2. Sube tu archivo **`ecopulse_analytics.py`** (o **`EcoPulse_Analytics.py`**) junto a `streamlit_app.py`.
+        3. Haz clic en **`Commit changes`**.
 
         ---
         #### 💡 ¿Quieres probarla ahora mismo sin ir a GitHub? Sube tu `ecopulse_analytics.py` aquí abajo:
@@ -140,86 +131,219 @@ if ecopulse is None:
         st.rerun()
     st.stop()
 
+
+# -----------------------------------------------------------------------------
+# 2. ESTADO DE NAVEGACIÓN (IDÉNTICO A LA APP DE ESCRITORIO)
+# -----------------------------------------------------------------------------
+# `pantalla_activa` puede ser:
+#   - "menu_categorias"         (Grilla 3x2 con las 6 Categorías Principales)
+#   - "sub_macroeconomicas"     (Grilla 3x3 con las 9 Subcategorías Macroeconómicas)
+#   - "sub_actividad", "sub_tcr", "sub_inflacion", "sub_empleo", "sub_capital",
+#     "sub_finanzas_publicas", "sub_monetaria", "sub_sector_externo", "sub_productividad"
+#   - "sub_cotizaciones"        (Grilla con las 8 Vistas de Cotizaciones)
+#   - "sub_proyecciones"        (Grilla con las 7 Vistas de Proyecciones)
+#   - "sub_modelacion"          (Tarjeta del Modelador IS-LM-BP)
+#   - "sub_calculadoras"        (Grilla con los 3 Instrumentos de Cálculo)
+#   - "presentacion"            (Vista dedicada de Presentación Profesional)
+#   - "calculadoras_hub"        (Suite interactiva con las 3 Calculadoras INE / SII / BCCh)
+#   - "vista_analitica"         (Cualquiera de las 89 Vistas Analíticas a pantalla completa)
 if "modo_oscuro" not in st.session_state:
     st.session_state["modo_oscuro"] = False
-if "categoria_activa" not in st.session_state:
-    st.session_state["categoria_activa"] = "2. Vistas Macroeconómicas"
-if "vista_macro_clave" not in st.session_state:
-    st.session_state["vista_macro_clave"] = "imacec_1"
+if "pantalla_activa" not in st.session_state:
+    st.session_state["pantalla_activa"] = "menu_categorias"
+if "vista_actual" not in st.session_state:
+    st.session_state["vista_actual"] = "imacec_1"
 if "calculadora_activa" not in st.session_state:
     st.session_state["calculadora_activa"] = "calc_ipc"
 
 
-def _inyectar_estilos_css(oscuro: bool) -> None:
-    if oscuro:
-        css = """
-        <style>
-            .stApp { background-color: #0B0F17; color: #F8FAFC; }
-            section[data-testid="stSidebar"] { background-color: #0F172A; border-right: 1px solid #263449; }
-            .ecopulse-header {
-                background: linear-gradient(90deg, #0F172A 0%, #13233F 100%);
-                border: 1px solid #0284C7;
-                border-radius: 10px;
-                padding: 14px 20px;
-                margin-bottom: 14px;
-                color: #F8FAFC;
-            }
-            .ecopulse-card {
-                background-color: #131C2E;
-                border: 1px solid #263449;
-                border-radius: 10px;
-                padding: 16px;
-                margin-bottom: 12px;
-                color: #F8FAFC;
-            }
-            .ecopulse-kpi-box {
-                background-color: #19253A;
-                border: 1px solid #0284C7;
-                border-radius: 8px;
-                padding: 12px 16px;
-                text-align: center;
-                color: #F8FAFC;
-            }
-        </style>
-        """
+def ir_a_pantalla(nombre_pantalla: str, clave_vista: Optional[str] = None) -> None:
+    st.session_state["pantalla_activa"] = nombre_pantalla
+    if clave_vista:
+        if clave_vista in ("calc_ipc", "calc_uf", "calc_tipo_cambio"):
+            st.session_state["calculadora_activa"] = clave_vista
+            st.session_state["pantalla_activa"] = "calculadoras_hub"
+        else:
+            st.session_state["vista_actual"] = clave_vista
+
+
+def navegar_a_destino(destino: str) -> None:
+    d_norm = destino.strip().lower()
+    if d_norm in ("menu", "categorias", "menu_categorias"):
+        ir_a_pantalla("menu_categorias")
+    elif d_norm == "presentacion":
+        ir_a_pantalla("presentacion")
+    elif d_norm in ("macroeconomicas", "menu_macro", "sub_macroeconomicas"):
+        ir_a_pantalla("sub_macroeconomicas")
+    elif d_norm in ecopulse.MAPA_SUBCATEGORIAS_MACRO:
+        ir_a_pantalla(d_norm)
+    elif d_norm in ("cotizaciones", "menu_cotizaciones", "sub_cotizaciones"):
+        ir_a_pantalla("sub_cotizaciones")
+    elif d_norm in ("proyecciones", "menu_proyecciones", "sub_proyecciones"):
+        ir_a_pantalla("sub_proyecciones")
+    elif d_norm in ("modelacion", "menu_modelacion", "sub_modelacion"):
+        ir_a_pantalla("sub_modelacion")
+    elif d_norm in ("calculadoras", "menu_calculadoras", "sub_calculadoras"):
+        ir_a_pantalla("sub_calculadoras")
+    elif d_norm in ("calc_ipc", "calc_uf", "calc_tipo_cambio", "calc-01", "calc-02", "calc-03"):
+        mapa_c = {"calc-01": "calc_ipc", "calc-02": "calc_uf", "calc-03": "calc_tipo_cambio"}
+        ir_a_pantalla("calculadoras_hub", mapa_c.get(d_norm, d_norm))
     else:
-        css = """
+        clv_res = ecopulse.resolver_clave_vista_desde_codigo_o_numero(d_norm)
+        if clv_res in ("calc_ipc", "calc_uf", "calc_tipo_cambio"):
+            ir_a_pantalla("calculadoras_hub", clv_res)
+        elif clv_res == "presentacion":
+            ir_a_pantalla("presentacion")
+        elif clv_res and clv_res in ecopulse.ORDEN_CLAVES_VISTAS:
+            ir_a_pantalla("vista_analitica", clv_res)
+        elif destino in ecopulse.ORDEN_CLAVES_VISTAS:
+            ir_a_pantalla("vista_analitica", destino)
+
+
+# -----------------------------------------------------------------------------
+# 3. ESTILOS CSS PARA REPLICAR LA INTERFAZ DE ESCRITORIO (CLARO Y OBSIDIAN DARK)
+# -----------------------------------------------------------------------------
+def _aplicar_css_interfaz_escritorio(oscuro: bool) -> None:
+    bg_app = "#0B0F17" if oscuro else "#FAFBFD"
+    bg_card = "#131C2E" if oscuro else "#FFFFFF"
+    bg_subcard = "#19253A" if oscuro else "#F8FAFC"
+    borde_card = "#263449" if oscuro else "#CBD5E1"
+    txt_prim = "#F8FAFC" if oscuro else "#0F172A"
+    txt_sec = "#CBD5E1" if oscuro else "#334155"
+    txt_ter = "#94A3B8" if oscuro else "#64748B"
+
+    st.markdown(
+        f"""
         <style>
-            .ecopulse-header {
-                background: linear-gradient(90deg, #0A2540 0%, #0F3D6E 100%);
-                border-bottom: 3px solid #D97706;
-                border-radius: 10px;
-                padding: 14px 20px;
-                margin-bottom: 14px;
-                color: #FFFFFF;
-            }
-            .ecopulse-card {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
-                padding: 16px;
-                margin-bottom: 12px;
-                color: #0F172A;
-                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-            }
-            .ecopulse-kpi-box {
-                background-color: #F8FAFC;
-                border: 1px solid #0284C7;
+            .block-container {{
+                padding-top: 1.0rem !important;
+                padding-bottom: 1.2rem !important;
+                padding-left: 1.4rem !important;
+                padding-right: 1.4rem !important;
+                max-width: 100% !important;
+            }}
+            .stApp {{
+                background-color: {bg_app};
+                color: {txt_prim};
+            }}
+            /* Banner institucional idéntico al header_card de la app de escritorio */
+            .ep-banner-top {{
+                background: linear-gradient(90deg, #07192E 0%, #0F3D6E 100%);
+                border: 2px solid #D97706;
                 border-radius: 8px;
-                padding: 12px 16px;
-                text-align: center;
-                color: #0F172A;
-            }
+                padding: 10px 18px;
+                margin-bottom: 8px;
+                color: #FFFFFF;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }}
+            .ep-barra-ruta {{
+                background-color: {bg_card};
+                border: 1px solid {borde_card};
+                border-radius: 6px;
+                padding: 8px 14px;
+                margin-bottom: 10px;
+                color: {txt_prim};
+                font-weight: 700;
+                font-size: 0.90rem;
+            }}
+            /* Tarjeta ejecutiva estilo Tkinter card_c con franja superior de color */
+            .ep-cat-card {{
+                background-color: {bg_card};
+                border: 2px solid {borde_card};
+                border-radius: 8px;
+                overflow: hidden;
+                margin-bottom: 4px;
+                height: 285px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }}
+            .ep-cat-stripe {{
+                height: 8px;
+                width: 100%;
+            }}
+            .ep-cat-body {{
+                padding: 12px 15px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }}
+            .ep-badge-row {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 6px;
+            }}
+            .ep-badge-num {{
+                color: #FFFFFF;
+                font-size: 0.72rem;
+                font-weight: 800;
+                padding: 2px 8px;
+                border-radius: 4px;
+                letter-spacing: 0.3px;
+            }}
+            .ep-badge-cnt {{
+                font-size: 0.72rem;
+                font-weight: 800;
+                padding: 2px 8px;
+                border-radius: 4px;
+            }}
+            .ep-cat-title {{
+                font-size: 1.08rem;
+                font-weight: 800;
+                color: {txt_prim};
+                margin-bottom: 2px;
+            }}
+            .ep-cat-sub {{
+                font-size: 0.80rem;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }}
+            .ep-cat-desc {{
+                font-size: 0.77rem;
+                color: {txt_sec};
+                line-height: 1.32;
+                margin-bottom: 7px;
+            }}
+            .ep-cat-items {{
+                background-color: {bg_subcard};
+                border: 1px solid {borde_card};
+                border-radius: 5px;
+                padding: 6px 9px;
+                font-size: 0.73rem;
+                color: {txt_prim};
+                line-height: 1.42;
+                margin-top: auto;
+            }}
+            /* Tarjeta compacta para subcategorías y vistas individuales */
+            .ep-vista-card {{
+                background-color: {bg_card};
+                border: 1.5px solid {borde_card};
+                border-radius: 7px;
+                overflow: hidden;
+                margin-bottom: 3px;
+                min-height: 175px;
+                display: flex;
+                flex-direction: column;
+            }}
+            div.stButton > button {{
+                font-weight: 700 !important;
+                border-radius: 6px !important;
+            }}
         </style>
-        """
-    st.markdown(css, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # -----------------------------------------------------------------------------
-# 2. CARGA Y CACHÉ DE DATOS MACROECONÓMICOS Y MERCADOS (BDE BCCh / INE / YFINANCE)
+# 4. CARGA DE DATOS EN CACHÉ (INSTANTÁNEA)
 # -----------------------------------------------------------------------------
-@st.cache_data(ttl=3600, show_spinner="Cargando series macroeconómicas (BDE Banco Central, INE, DIPRES y Yahoo Finance)...")
-def cargar_paquete_datos_web(forzar_online: bool = False) -> Dict[str, object]:
+@st.cache_data(ttl=3600, show_spinner="Iniciando motor macroeconómico de EcoPulse Analytics...")
+def obtener_datos_macro_en_cache(forzar_online: bool = False) -> Dict[str, object]:
     ecopulse.sincronizar_catalogo_y_contadores_vistas(forzar=True)
     monitor = ecopulse.MonitorCuentasNacionales()
     paquete_base: Dict[str, pd.DataFrame] = {}
@@ -240,21 +364,12 @@ def cargar_paquete_datos_web(forzar_online: bool = False) -> Dict[str, object]:
             sem_yf = ecopulse.MonitorCuentasNacionales._semilla_mercados_yahoo_instantanea()
             paquete_base.update(sem_yf)
 
-    datos_filtrados = ecopulse.aplicar_filtros_universales(
+    return ecopulse.aplicar_filtros_universales(
         datos_base=paquete_base,
         desde="1960-01-01",
         hasta=date.today().strftime("%Y-%m-%d"),
         frecuencia="original",
     )
-    return datos_filtrados
-
-
-def _renderizar_figura_matplotlib_st(fig: plt.Figure) -> None:
-    ecopulse.ESTADO_TEMA_Y_MODO_UI["modo_oscuro"] = bool(st.session_state["modo_oscuro"])
-    if st.session_state["modo_oscuro"]:
-        ecopulse._aplicar_tema_figura_mpl(fig)
-    st.pyplot(fig, use_container_width=True, clear_figure=True)
-    plt.close(fig)
 
 
 def _fmt_clp(val: float, dec: int = 0) -> str:
@@ -262,125 +377,481 @@ def _fmt_clp(val: float, dec: int = 0) -> str:
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _mostrar_figura_mpl(fig: plt.Figure) -> None:
+    osc = bool(st.session_state["modo_oscuro"])
+    ecopulse.ESTADO_TEMA_Y_MODO_UI["modo_oscuro"] = osc
+    if osc:
+        ecopulse._aplicar_tema_figura_mpl(fig)
+    st.pyplot(fig, use_container_width=True, clear_figure=True)
+    plt.close(fig)
+
+
+resumen_cat = ecopulse.sincronizar_catalogo_y_contadores_vistas()
+datos_macro = obtener_datos_macro_en_cache(forzar_online=False)
+oscuro_act = bool(st.session_state["modo_oscuro"])
+ecopulse.ESTADO_TEMA_Y_MODO_UI["modo_oscuro"] = oscuro_act
+_aplicar_css_interfaz_escritorio(oscuro_act)
+
+
 # -----------------------------------------------------------------------------
-# 3. BARRA LATERAL (NAVEGACIÓN POR LAS 6 CATEGORÍAS, BUSCADOR Y MODO OSCURO)
+# 5. BANNER SUPERIOR INSTITUCIONAL Y BARRA DE CONTROL GLOBAL (SIEMPRE VISIBLE)
 # -----------------------------------------------------------------------------
-ecopulse.sincronizar_catalogo_y_contadores_vistas()
-datos_macro = cargar_paquete_datos_web(forzar_online=False)
-
-with st.sidebar:
-    st.markdown(f"### 📊 {ecopulse.APP_NOMBRE}")
-    st.caption(f"**{ecopulse.AUTOR_PERFIL['nombre']}**  \n{ecopulse.AUTOR_PERFIL['titular']}")
-
-    modo_osc_toggle = st.toggle(
-        "🌙 Modo Oscuro («Obsidian Macro Terminal»)",
-        value=bool(st.session_state["modo_oscuro"]),
-    )
-    st.session_state["modo_oscuro"] = modo_osc_toggle
-    ecopulse.ESTADO_TEMA_Y_MODO_UI["modo_oscuro"] = modo_osc_toggle
-
-    if st.button("🔄 Sincronizar Fuentes en Vivo (BDE / SII / Yahoo)", use_container_width=True):
-        cargar_paquete_datos_web.clear()
-        datos_macro = cargar_paquete_datos_web(forzar_online=True)
-        st.success("✓ Series sincronizadas correctamente.")
-
-    st.divider()
-
-    opciones_categorias = [
-        "1. Presentación",
-        "2. Vistas Macroeconómicas",
-        "3. Cotizaciones de Precio",
-        "4. Proyecciones",
-        "5. Modelación Macroeconómica",
-        "6. Calculadoras",
-    ]
-    cat_sel = st.radio(
-        "📂 CATEGORÍAS PRINCIPALES (6):",
-        options=opciones_categorias,
-        index=opciones_categorias.index(st.session_state["categoria_activa"])
-        if st.session_state["categoria_activa"] in opciones_categorias
-        else 1,
-    )
-    st.session_state["categoria_activa"] = cat_sel
-
-    st.divider()
-    q_busqueda = st.text_input("🔍 Salto rápido por código o nombre", placeholder="Ej: ACT-16, PROY-07, CALC-01, UF...")
-    if q_busqueda.strip():
-        clv_directa = ecopulse.resolver_clave_vista_desde_codigo_o_numero(q_busqueda.strip())
-        resultados_b = ecopulse.buscar_vistas_en_catalogo(q_busqueda.strip())
-        if clv_directa in ("calc_ipc", "calc_uf", "calc_tipo_cambio"):
-            if st.button(f"🧮 Ir a {clv_directa.upper()}", use_container_width=True):
-                st.session_state["categoria_activa"] = "6. Calculadoras"
-                st.session_state["calculadora_activa"] = clv_directa
-                st.rerun()
-        elif resultados_b:
-            for item_b in resultados_b[:5]:
-                etq_b = f"[{item_b.get('codigo', '')}] {item_b.get('corto_base', item_b.get('titulo', ''))}"
-                if st.button(etq_b, key=f"search_{item_b['clave']}", use_container_width=True):
-                    cl_d = str(item_b["clave"])
-                    cat_d = str(item_b.get("categoria", ""))
-                    if cat_d == "calculadoras":
-                        st.session_state["categoria_activa"] = "6. Calculadoras"
-                        st.session_state["calculadora_activa"] = cl_d
-                    elif cat_d == "presentacion":
-                        st.session_state["categoria_activa"] = "1. Presentación"
-                    elif cat_d == "cotizaciones":
-                        st.session_state["categoria_activa"] = "3. Cotizaciones de Precio"
-                        st.session_state["vista_cot_clave"] = cl_d
-                    elif cat_d == "proyecciones":
-                        st.session_state["categoria_activa"] = "4. Proyecciones"
-                        st.session_state["vista_proy_clave"] = cl_d
-                    elif cat_d == "modelacion":
-                        st.session_state["categoria_activa"] = "5. Modelación Macroeconómica"
-                    else:
-                        st.session_state["categoria_activa"] = "2. Vistas Macroeconómicas"
-                        st.session_state["vista_macro_clave"] = cl_d
-                    st.rerun()
-
-_inyectar_estilos_css(bool(st.session_state["modo_oscuro"]))
-
-# Banner institucional superior
 st.markdown(
     f"""
-    <div class="ecopulse-header">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-            <div>
-                <div style="font-size:1.25rem; font-weight:800;">📊 {ecopulse.APP_TITULO_COMPLETO}</div>
-                <div style="font-size:0.88rem; opacity:0.90;">
-                    {ecopulse.AUTOR_PERFIL['nombre']} — {ecopulse.AUTOR_PERFIL['titular']} | {ecopulse.AUTOR_PERFIL['rol_actual']}
-                </div>
+    <div class="ep-banner-top">
+        <div>
+            <div style="font-size:0.80rem; color:#93C5FD; font-weight:700;">📊 {ecopulse.APP_TITULO_COMPLETO}</div>
+            <div style="font-size:1.18rem; font-weight:800; color:#FFFFFF; margin:1px 0;">
+                {ecopulse.AUTOR_PERFIL['nombre']} &nbsp;—&nbsp; {ecopulse.AUTOR_PERFIL['titular']}
             </div>
-            <div style="font-size:0.82rem; text-align:right; opacity:0.92;">
-                ✉ {ecopulse.AUTOR_PERFIL['email']} &nbsp;|&nbsp; ✆ {ecopulse.AUTOR_PERFIL['telefono']}<br>
-                89 Vistas Analíticas + 3 Calculadoras Oficiales (INE / SII / BCCh)
+            <div style="font-size:0.76rem; color:#FDE68A; font-weight:600;">
+                {ecopulse.AUTOR_PERFIL['rol_actual']} &nbsp;|&nbsp; ✉ {ecopulse.AUTOR_PERFIL['email']} &nbsp;|&nbsp; ✆ {ecopulse.AUTOR_PERFIL['telefono']} &nbsp;|&nbsp; ⌖ {ecopulse.AUTOR_PERFIL['ubicacion']}
             </div>
+        </div>
+        <div style="text-align:right; font-size:0.78rem; color:#E2E8F0;">
+            <span style="background:#1E293B; border:1px solid #475569; padding:4px 10px; border-radius:5px; font-weight:700; color:#38BDF8;">
+                6 Categorías • 9 Subcategorías • 89 Vistas + 3 Calculadoras
+            </span>
         </div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
+# Barra superior interactiva (Menú Principal | Buscador por Código/Nombre | Actualizar | Modo Oscuro)
+col_top_home, col_top_search, col_top_go, col_top_sync, col_top_theme = st.columns([2.2, 4.3, 1.1, 2.2, 2.2])
+with col_top_home:
+    if st.button("🏠 Menú Principal (6 Categorías)", use_container_width=True, type="primary"):
+        ir_a_pantalla("menu_categorias")
+        st.rerun()
+with col_top_search:
+    q_top = st.text_input(
+        "Buscador",
+        placeholder="🔍 Buscar vista o código (ACT-01..16, EXT-05, PROY-07, CALC-01, UF, IPC...)",
+        label_visibility="collapsed",
+        key="input_buscador_global",
+    )
+with col_top_go:
+    if st.button("Ir ➔", use_container_width=True):
+        if q_top.strip():
+            clv_d = ecopulse.resolver_clave_vista_desde_codigo_o_numero(q_top.strip())
+            if clv_d:
+                navegar_a_destino(clv_d)
+                st.rerun()
+            else:
+                res_b = ecopulse.buscar_vistas_en_catalogo(q_top.strip())
+                if res_b:
+                    navegar_a_destino(str(res_b[0]["clave"]))
+                    st.rerun()
+with col_top_sync:
+    if st.button("🔄 Actualizar Fuentes (BDE/SII)", use_container_width=True):
+        obtener_datos_macro_en_cache.clear()
+        datos_macro = obtener_datos_macro_en_cache(forzar_online=True)
+        st.toast("✓ Todas las fuentes sincronizadas al día.")
+with col_top_theme:
+    etq_tema_btn = "☀️ Cambiar a Modo Claro" if oscuro_act else "🌙 Cambiar a Modo Oscuro"
+    if st.button(etq_tema_btn, use_container_width=True):
+        st.session_state["modo_oscuro"] = not oscuro_act
+        st.rerun()
+
+# Si el usuario escribió en el buscador, mostrar tarjetas de resultados inmediatos
+if q_top.strip() and st.session_state["pantalla_activa"] != "vista_analitica":
+    resultados_busq = ecopulse.buscar_vistas_en_catalogo(q_top.strip())
+    if resultados_busq:
+        st.markdown(f"##### 🔍 Resultados de búsqueda para «{q_top.strip()}» ({len(resultados_busq)} coincidencias):")
+        cols_res = st.columns(3)
+        for i_r, it_r in enumerate(resultados_busq[:9]):
+            with cols_res[i_r % 3]:
+                if st.button(
+                    f"{it_r.get('icono', '📊')} [{it_r.get('codigo', '')}] {it_r.get('corto_base', it_r.get('titulo', ''))}",
+                    key=f"btn_res_q_{it_r['clave']}_{i_r}",
+                    use_container_width=True,
+                ):
+                    navegar_a_destino(str(it_r["clave"]))
+                    st.rerun()
+        st.divider()
+
 
 # -----------------------------------------------------------------------------
-# 4. RENDERIZADO SEGÚN CATEGORÍA ACTIVA
+# 6. FUNCIÓN AUXILIAR PARA DIBUJAR TARJETAS IDÉNTICAS A LA APP DE ESCRITORIO
 # -----------------------------------------------------------------------------
+def _renderizar_tarjeta_categoria_o_vista(
+    columna_st,
+    badge_izq: str,
+    badge_der: str,
+    icono: str,
+    titulo: str,
+    subtitulo: str,
+    descripcion: str,
+    items_lista: List[str],
+    color_hex: str,
+    bg_suave: str,
+    fg_suave: str,
+    texto_boton: str,
+    key_boton: str,
+    callback_fn,
+    altura_px: int = 285,
+) -> None:
+    if st.session_state["modo_oscuro"]:
+        bg_suave_eff = "#19253A"
+        fg_suave_eff = "#38BDF8"
+    else:
+        bg_suave_eff = bg_suave
+        fg_suave_eff = fg_suave
 
-# === CATEGORÍA 1: PRESENTACIÓN PROFESIONAL ===
-if cat_sel == "1. Presentación":
-    st.subheader("👤 1. Presentación Profesional y Sello Analítico")
+    items_html = "<br>".join(items_lista) if items_lista else ""
+    bloque_items = f'<div class="ep-cat-items">{items_html}</div>' if items_html else ""
+
+    with columna_st:
+        st.markdown(
+            f"""
+            <div class="ep-cat-card" style="height:{altura_px}px;">
+                <div class="ep-cat-stripe" style="background-color:{color_hex};"></div>
+                <div class="ep-cat-body">
+                    <div class="ep-badge-row">
+                        <span class="ep-badge-num" style="background-color:{color_hex};">{badge_izq}</span>
+                        <span class="ep-badge-cnt" style="background-color:{bg_suave_eff}; color:{fg_suave_eff};">{badge_der}</span>
+                    </div>
+                    <div class="ep-cat-title">{icono} &nbsp;{titulo}</div>
+                    <div class="ep-cat-sub" style="color:{color_hex if not st.session_state['modo_oscuro'] else '#38BDF8'};">{subtitulo}</div>
+                    <div class="ep-cat-desc">{descripcion}</div>
+                    {bloque_items}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(texto_boton, key=key_boton, use_container_width=True):
+            callback_fn()
+            st.rerun()
+
+
+# -----------------------------------------------------------------------------
+# 7. ENRUTADOR DE PANTALLAS (MENÚ PRINCIPAL 3x2, SUBPANTALLAS Y VISTAS)
+# -----------------------------------------------------------------------------
+pantalla = st.session_state["pantalla_activa"]
+
+# =============================================================================
+# PANTALLA A: MENÚ PRINCIPAL DE LAS 6 CATEGORÍAS EN GRILLA 3×2 (COMO EN LA APP)
+# =============================================================================
+if pantalla == "menu_categorias":
+    cat_1 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["presentacion"]
+    cat_2 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["macroeconomicas"]
+    cat_3 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["cotizaciones"]
+    cat_4 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["proyecciones"]
+    cat_5 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["modelacion"]
+    cat_6 = ecopulse.MAPA_CATEGORIAS_PRINCIPALES["calculadoras"]
+
+    n_subs_macro = int(resumen_cat["total_subcategorias_macro"])
+    n_vistas_macro = int(resumen_cat["total_vistas_macro"])
+    n_vistas_cot = int(resumen_cat["total_vistas_cotizaciones"])
+    n_vistas_proy = int(resumen_cat["total_vistas_proyecciones"])
+    n_vistas_tot = int(resumen_cat["total_vistas_analiticas"])
+
     st.markdown(
         f"""
-        <div class="ecopulse-card">
-            <h3 style="margin-top:0;">{ecopulse.AUTOR_PERFIL['nombre']}</h3>
-            <p style="font-weight:600; color:#0284C7;">{ecopulse.AUTOR_PERFIL['titular']} &nbsp;•&nbsp; {ecopulse.AUTOR_PERFIL['rol_actual']}</p>
-            <p>{ecopulse.AUTOR_PERFIL['resumen']}</p>
+        <div class="ep-barra-ruta">
+            📂 &nbsp;MENÚ PRINCIPAL &nbsp;▸&nbsp; 6 CATEGORÍAS PRINCIPALES &nbsp;•&nbsp;
+            {n_subs_macro} SUBCATEGORÍAS MACRO &nbsp;•&nbsp; {n_vistas_tot} VISTAS NUMERADAS (V-01 A V-{n_vistas_tot:02d}) + 3 CALCULADORAS OFICIALES
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+    tarjetas_6_cats = [
+        {
+            "badge_izq": str(cat_1["numero_badge"]),
+            "badge_der": str(cat_1["etiqueta_cantidad"]),
+            "icono": "👤",
+            "titulo": str(cat_1["titulo"]),
+            "subtitulo": "Perfil Profesional, Sello Analítico y Trayectoria Académica",
+            "descripcion": "Perfil profesional, trayectoria laboral e investigación académica de Matías Rioseco Oróstica (Ingeniero Comercial y Magíster en Análisis Económico (c), FEN U. de Chile).",
+            "items": [
+                "▪ [PRES-01] Perfil Profesional y Sello Analítico",
+                "▪ Trayectoria en Economía, Finanzas y Gestión",
+                "▪ Formación Académica, Postgrado y Diplomados",
+                "▪ Datos de Contacto Directo e Identidad Institucional",
+            ],
+            "color": "#D97706",
+            "bg_s": "#FEF3C7",
+            "fg_s": "#92400E",
+            "btn": "👤  Abrir 1. Presentación [PRES-01] ➔",
+            "dest": "presentacion",
+        },
+        {
+            "badge_izq": str(cat_2["numero_badge"]),
+            "badge_der": str(cat_2["etiqueta_cantidad"]),
+            "icono": "🏛️",
+            "titulo": str(cat_2["titulo"]),
+            "subtitulo": f"Monitoreo Macroeconómico ({n_subs_macro} Subcategorías • {n_vistas_macro} Vistas)",
+            "descripcion": f"Análisis macroeconómico en {n_subs_macro} subcategorías temáticas ({cat_2['rango_vistas']}) conectadas a la BDE del Banco Central de Chile, INE, DIPRES, BACI-CEPII, Clapes UC y CNEP.",
+            "items": [
+                "▪ 1. Actividad (16) • 2. TCR (4) • 3. Inflación / IPC (4)",
+                "▪ 4. Trabajo y Empleo (12 vistas: EMP-01 a EMP-12)",
+                "▪ 5. Capital, Ahorro e Inversión (7) • 6. Finanzas Públicas (8)",
+                "▪ 7. Monetaria (4) • 8. Sector Externo (10) • 9. Productividad PTF (8)",
+            ],
+            "color": "#0F3D6E",
+            "bg_s": "#DBEAFE",
+            "fg_s": "#1E3A8A",
+            "btn": f"🏛️  Explorar {n_vistas_macro} Vistas Macroeconómicas ➔",
+            "dest": "sub_macroeconomicas",
+        },
+        {
+            "badge_izq": str(cat_3["numero_badge"]),
+            "badge_der": str(cat_3["etiqueta_cantidad"]),
+            "icono": "💹",
+            "titulo": str(cat_3["titulo"]),
+            "subtitulo": f"Monitoreo Financiero, Cambiario y de Commodities ({n_vistas_cot} Vistas)",
+            "descripcion": f"Monitoreo bursátil, cambiario, minero y energético ({cat_3['rango_vistas']} • Códigos {cat_3['rango_codigos']}) con gráficos de Velas Japonesas (OHLC) vía Yahoo Finance.",
+            "items": [
+                "▪ [COT-01..02] 1. Petróleo Brent (USD/bbl) • 2. Dólar USD/CLP",
+                "▪ [COT-03..04] 3. Cobre COMEX (USD/lb) • 4. Índice IPSA Chile",
+                "▪ [COT-05..06] 5. Oro COMEX (USD/oz) • 6. Molibdeno (USD/lb)",
+                "▪ [COT-07..08] 7. Carbonato de Litio (USD/t) • 8. Gas Natural GNL",
+            ],
+            "color": "#0369A1",
+            "bg_s": "#E0F2FE",
+            "fg_s": "#0369A1",
+            "btn": f"💹  Explorar Cotizaciones [{cat_3['rango_codigos']}] ➔",
+            "dest": "sub_cotizaciones",
+        },
+        {
+            "badge_izq": str(cat_4["numero_badge"]),
+            "badge_der": str(cat_4["etiqueta_cantidad"]),
+            "icono": "🔮",
+            "titulo": str(cat_4["titulo"]),
+            "subtitulo": f"Modelos Econométricos SARIMAX y Consenso ({n_vistas_proy} Vistas)",
+            "descripcion": "Proyecciones econométricas SARIMAX para el IMACEC Total, IMACEC No Minero, PIB Anual en USD (con IMACEC Neto YTD), 4 Proyecciones Institucionales y Resumen en Tarjetas.",
+            "items": [
+                "▪ [PROY-01..02] IMACEC Total: Senda SARIMAX y Pulso % a/a",
+                "▪ [PROY-03] PIB Anual en USD (Alineado con IMACEC Neto YTD)",
+                "▪ [PROY-04..05] IMACEC No Minero y [PROY-06] 4 Instituciones",
+                "▪ [PROY-07] Tablero Resumen en Tarjetas (2026 y 2027)",
+            ],
+            "color": "#6D28D9",
+            "bg_s": "#F3E8FF",
+            "fg_s": "#5B21B6",
+            "btn": f"🔮  Explorar Proyecciones [{cat_4['rango_codigos']}] ➔",
+            "dest": "sub_proyecciones",
+        },
+        {
+            "badge_izq": str(cat_5["numero_badge"]),
+            "badge_der": str(cat_5["etiqueta_cantidad"]),
+            "icono": "📐",
+            "titulo": str(cat_5["titulo"]),
+            "subtitulo": "Equilibrio General IS-LM-BP (Mundell-Fleming)",
+            "descripcion": "Simulador estructural interactivo de equilibrio general para economía pequeña y abierta en 4 sistemas interrelacionados bajo Tipo de Cambio Flexible o Fijo.",
+            "items": [
+                "▪ [MOD-01] 1. Curva Producción – Interés (IS-LM-BP)",
+                "▪ 2. Mercado Cambiario y Paridad UIP (Tipo de Cambio – Interés)",
+                "▪ 3. Curva de Inversión – Ahorro (Privado, Público y Externo)",
+                "▪ 4. Equilibrio Abierto (IS*-LM*) y Exportaciones Netas NX",
+            ],
+            "color": "#0F766E",
+            "bg_s": "#CCFBF1",
+            "fg_s": "#115E59",
+            "btn": f"📐  Explorar Modelación [{cat_5['rango_codigos']}] ➔",
+            "dest": "sub_modelacion",
+        },
+        {
+            "badge_izq": str(cat_6["numero_badge"]),
+            "badge_der": str(cat_6["etiqueta_cantidad"]),
+            "icono": "🧮",
+            "titulo": str(cat_6["titulo"]),
+            "subtitulo": "Instrumentos de Cálculo Oficial (INE • SII • BCCh)",
+            "descripcion": "Instrumentos interactivos para cálculo de reajustabilidad por IPC (modelo INE), conversión diaria de UF (tabla oficial SII 2026) y conversión de divisas.",
+            "items": [
+                "▪ [CALC-01] 1. Calculadora de IPC (Modelo Oficial INE — calculadoraipc.ine.cl)",
+                "▪ [CALC-02] 2. Calculadora de UF (Valores Oficiales Diarios SII — uf2026.htm)",
+                "▪ [CALC-03] 3. Calculadora de Tipo de Cambio (USD, EUR, CLP, UF y UTM)",
+                "▪ Formularios interactivos + Tablas oficiales SII e INE",
+            ],
+            "color": "#0284C7",
+            "bg_s": "#E0F2FE",
+            "fg_s": "#0369A1",
+            "btn": "🧮  Explorar Calculadoras [CALC-01..CALC-03] ➔",
+            "dest": "sub_calculadoras",
+        },
+    ]
+
+    for fila_idx in range(2):
+        cols_3 = st.columns(3)
+        for col_idx in range(3):
+            item_c = tarjetas_6_cats[fila_idx * 3 + col_idx]
+            dest_c = item_c["dest"]
+            _renderizar_tarjeta_categoria_o_vista(
+                columna_st=cols_3[col_idx],
+                badge_izq=item_c["badge_izq"],
+                badge_der=item_c["badge_der"],
+                icono=item_c["icono"],
+                titulo=item_c["titulo"],
+                subtitulo=item_c["subtitulo"],
+                descripcion=item_c["descripcion"],
+                items_lista=item_c["items"],
+                color_hex=item_c["color"],
+                bg_suave=item_c["bg_s"],
+                fg_suave=item_c["fg_s"],
+                texto_boton=item_c["btn"],
+                key_boton=f"btn_cat_main_{dest_c}",
+                callback_fn=lambda d=dest_c: navegar_a_destino(d),
+                altura_px=290,
+            )
+
+
+# =============================================================================
+# PANTALLA B: SUBPANTALLA DE LAS 9 SUBCATEGORÍAS MACROECONÓMICAS (GRILLA 3×3)
+# =============================================================================
+elif pantalla == "sub_macroeconomicas":
+    c_back, c_tit = st.columns([2.2, 7.8])
+    with c_back:
+        if st.button("⬅ Volver a las 6 Categorías", use_container_width=True):
+            ir_a_pantalla("menu_categorias")
+            st.rerun()
+    with c_tit:
+        st.markdown(
+            """
+            <div class="ep-barra-ruta">
+                🏛️ &nbsp;CATEGORÍA 2: VISTAS MACROECONÓMICAS &nbsp;—&nbsp; 9 Subcategorías Temáticas • 73 Vistas Individuales (Vistas 1–73)
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    subs_macro = ecopulse.SUBCATEGORIAS_MACROECONOMICAS
+    for f_s in range(0, len(subs_macro), 3):
+        cols_s = st.columns(3)
+        for c_s in range(3):
+            if f_s + c_s >= len(subs_macro):
+                break
+            sub_info = subs_macro[f_s + c_s]
+            clv_sub = str(sub_info["clave_sub"])
+            vistas_s = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("subcategoria_clave") == clv_sub]
+            items_s = [f"▪ [{v['codigo']}] {v['corto_base']}" for v in vistas_s[:4]]
+            if len(vistas_s) > 4:
+                items_s.append(f"▪ ... y {len(vistas_s) - 4} vistas adicionales ({sub_info['rango_codigos']})")
+            _renderizar_tarjeta_categoria_o_vista(
+                columna_st=cols_s[c_s],
+                badge_izq=f"SUBCATEGORÍA 2.{sub_info['numero']}",
+                badge_der=str(sub_info["etiqueta_cantidad"]),
+                icono=str(sub_info["icono"]),
+                titulo=str(sub_info["titulo"]),
+                subtitulo=f"Códigos {sub_info['rango_codigos']} ({sub_info['rango_vistas']})",
+                descripcion=str(sub_info["descripcion"]),
+                items_lista=items_s,
+                color_hex=str(sub_info["color"]),
+                bg_suave="#EFF6FF",
+                fg_suave=str(sub_info["color"]),
+                texto_boton=f"{sub_info['icono']}  Abrir {sub_info['nombre_limpio']} ({sub_info['cantidad_vistas']} Vistas) ➔",
+                key_boton=f"btn_sub_macro_{clv_sub}",
+                callback_fn=lambda k=clv_sub: ir_a_pantalla(k),
+                altura_px=275,
+            )
+
+
+# =============================================================================
+# PANTALLA C: GRILLA DE TARJETAS DE VISTAS DE UNA SUBCATEGORÍA O CATEGORÍA
+# =============================================================================
+elif pantalla in ecopulse.MAPA_SUBCATEGORIAS_MACRO or pantalla in ("sub_cotizaciones", "sub_proyecciones", "sub_modelacion", "sub_calculadoras"):
+    es_sub_macro = pantalla in ecopulse.MAPA_SUBCATEGORIAS_MACRO
+    c_b1, c_b2 = st.columns([2.4, 7.6])
+    with c_b1:
+        if es_sub_macro:
+            if st.button("⬅ Volver a las 9 Subcategorías Macro", use_container_width=True):
+                ir_a_pantalla("sub_macroeconomicas")
+                st.rerun()
+        else:
+            if st.button("⬅ Volver a las 6 Categorías", use_container_width=True):
+                ir_a_pantalla("menu_categorias")
+                st.rerun()
+
+    if es_sub_macro:
+        info_hdr = ecopulse.MAPA_SUBCATEGORIAS_MACRO[pantalla]
+        txt_hdr = f"{info_hdr['icono']} &nbsp;2.{info_hdr['numero']} {info_hdr['nombre_limpio'].upper()} &nbsp;—&nbsp; {info_hdr['etiqueta_cantidad']}"
+        lista_tarjetas = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("subcategoria_clave") == pantalla]
+    elif pantalla == "sub_cotizaciones":
+        txt_hdr = "💹 &nbsp;CATEGORÍA 3: COTIZACIONES DE PRECIO &nbsp;—&nbsp; 8 Vistas en Velas Japonesas (COT-01 a COT-08)"
+        lista_tarjetas = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("categoria") == "cotizaciones"]
+    elif pantalla == "sub_proyecciones":
+        txt_hdr = "🔮 &nbsp;CATEGORÍA 4: PROYECCIONES ECONOMÉTRICAS Y CONSENSO &nbsp;—&nbsp; 7 Vistas (PROY-01 a PROY-07)"
+        lista_tarjetas = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("categoria") == "proyecciones"]
+    elif pantalla == "sub_modelacion":
+        txt_hdr = "📐 &nbsp;CATEGORÍA 5: MODELACIÓN MACROECONÓMICA &nbsp;—&nbsp; Modelador IS-LM-BP (MOD-01)"
+        lista_tarjetas = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("categoria") == "modelacion"]
+    else:
+        txt_hdr = "🧮 &nbsp;CATEGORÍA 6: CALCULADORAS INTERACTIVAS OFICIALES &nbsp;—&nbsp; 3 Instrumentos de Cálculo (CALC-01 a CALC-03)"
+        lista_tarjetas = ecopulse.CATALOGO_INSTRUMENTOS_CALCULADORAS
+
+    with c_b2:
+        st.markdown(f'<div class="ep-barra-ruta">{txt_hdr}</div>', unsafe_allow_html=True)
+
+    for idx_v in range(0, len(lista_tarjetas), 3):
+        cols_v = st.columns(3)
+        for c_i in range(3):
+            if idx_v + c_i >= len(lista_tarjetas):
+                break
+            v_meta = lista_tarjetas[idx_v + c_i]
+            clv_dest = str(v_meta["clave"])
+            cod_v = str(v_meta.get("codigo", ""))
+            num_v = str(v_meta.get("numero", ""))
+            tit_v = str(v_meta.get("titulo_base", v_meta.get("titulo", "")))
+            corto_v = str(v_meta.get("corto_base", tit_v))
+            sub_v = str(v_meta.get("subtitulo", ""))
+            col_v = str(v_meta.get("color_acento", "#0284C7"))
+            es_calc = pantalla == "sub_calculadoras"
+            _renderizar_tarjeta_categoria_o_vista(
+                columna_st=cols_v[c_i],
+                badge_izq=f"CÓD: {cod_v}" if es_calc else f"CÓD: {cod_v} • VISTA {num_v}",
+                badge_der="INSTRUMENTO INTERACTIVO" if es_calc else str(v_meta.get("codigo_global", f"V-{num_v}")),
+                icono=str(v_meta.get("icono", "📊")),
+                titulo=corto_v,
+                subtitulo=tit_v[:88] + ("..." if len(tit_v) > 88 else ""),
+                descripcion=sub_v[:175] + ("..." if len(sub_v) > 175 else ""),
+                items_lista=[],
+                color_hex=col_v,
+                bg_suave="#E0F2FE",
+                fg_suave="#0369A1",
+                texto_boton=f"🧮  Abrir {corto_v} [{cod_v}] ➔" if es_calc else f"📊  Abrir Vista {num_v} [{cod_v}] ➔",
+                key_boton=f"btn_card_v_{clv_dest}",
+                callback_fn=(lambda k=clv_dest: ir_a_pantalla("calculadoras_hub", k)) if es_calc else (lambda k=clv_dest: ir_a_pantalla("vista_analitica", k)),
+                altura_px=220,
+            )
+
+
+# =============================================================================
+# PANTALLA D: VISTA DE PRESENTACIÓN PROFESIONAL (CATEGORÍA 1)
+# =============================================================================
+elif pantalla == "presentacion":
+    c_nav_p1, c_nav_p2, c_nav_p3, c_nav_p4 = st.columns(4)
+    with c_nav_p1:
+        if st.button("🏠 Volver al Menú Principal", use_container_width=True):
+            ir_a_pantalla("menu_categorias")
+            st.rerun()
+    with c_nav_p2:
+        if st.button("🏛️ Ir a 2. Vistas Macroeconómicas ➔", use_container_width=True):
+            ir_a_pantalla("sub_macroeconomicas")
+            st.rerun()
+    with c_nav_p3:
+        if st.button("🔮 Ir a 4. Proyecciones ➔", use_container_width=True):
+            ir_a_pantalla("sub_proyecciones")
+            st.rerun()
+    with c_nav_p4:
+        if st.button("🧮 Ir a 6. Calculadoras ➔", use_container_width=True):
+            ir_a_pantalla("calculadoras_hub", "calc_ipc")
+            st.rerun()
+
+    st.markdown(
+        f"""
+        <div class="ep-barra-ruta">
+            👤 &nbsp;CATEGORÍA 1: PRESENTACIÓN PROFESIONAL [PRES-01] &nbsp;—&nbsp; {ecopulse.AUTOR_PERFIL['nombre']}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.info(ecopulse.AUTOR_PERFIL["resumen"])
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        st.markdown("#### 💼 Experiencia Profesional e Investigación")
+        st.markdown("#### 💼 Trayectoria Profesional e Investigación")
         for cargo, inst, per, det in ecopulse.EXPERIENCIA_PROFESIONAL:
             with st.expander(f"**{cargo}** — {inst} ({per})", expanded=True):
                 st.write(det)
@@ -391,206 +862,89 @@ if cat_sel == "1. Presentación":
                 st.write(det)
 
 
-# === CATEGORÍA 2: VISTAS MACROECONÓMICAS (9 SUBCATEGORÍAS • 73 VISTAS) ===
-elif cat_sel == "2. Vistas Macroeconómicas":
-    subs_lista = ecopulse.SUBCATEGORIAS_MACROECONOMICAS
-    mapa_nom_sub = {f"{s['icono']} {s['titulo']} ({s['cantidad_vistas']} vistas)": str(s["clave_sub"]) for s in subs_lista}
-
-    c_nav1, c_nav2, c_nav3, c_nav4 = st.columns([3, 4, 2, 2])
-    with c_nav1:
-        etq_sub_sel = st.selectbox("Subcategoría Macroeconómica (9):", options=list(mapa_nom_sub.keys()))
-        clave_sub_sel = mapa_nom_sub[etq_sub_sel]
-    vistas_de_sub = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("subcategoria_clave") == clave_sub_sel]
-    mapa_vistas_sub = {f"[{v['codigo']}] {v['titulo_base']}": str(v["clave"]) for v in vistas_de_sub}
-
-    with c_nav2:
-        etq_v_sel = st.selectbox("Vista Analítica:", options=list(mapa_vistas_sub.keys()))
-        clave_v_macro = mapa_vistas_sub[etq_v_sel]
-        st.session_state["vista_macro_clave"] = clave_v_macro
-
-    with c_nav3:
-        modo_m = st.radio("Medición:", options=["yoy", "nivel"], format_func=lambda x: "Var. % a/a" if x == "yoy" else "Nivel / Índice", horizontal=True)
-        ecopulse.ESTADO_FILTROS_MACRO_BOTONES["modo"] = modo_m
-
-    with c_nav4:
-        vent_m = st.selectbox("Horizonte Temporal:", options=["3A", "5A", "10A", "20A", "MAX"], index=2)
-        ecopulse.ESTADO_FILTROS_MACRO_BOTONES["ventana"] = vent_m
-
-    fig_m = plt.figure(figsize=(15.0, 8.2), dpi=110)
-    ecopulse.dibujar_vista_macro_individual(datos_macro, clave_vista=clave_v_macro, modo=modo_m, fig=fig_m)
-    _renderizar_figura_matplotlib_st(fig_m)
-
-
-# === CATEGORÍA 3: COTIZACIONES DE PRECIO (8 ACTIVOS EN VELAS JAPONESAS OHLC) ===
-elif cat_sel == "3. Cotizaciones de Precio":
-    vistas_cot = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("categoria") == "cotizaciones"]
-    mapa_cot = {f"[{v['codigo']}] {v['corto_base']} — {v['titulo_base']}": str(v["clave"]) for v in vistas_cot}
-
-    cc1, cc2, cc3 = st.columns([4, 2, 2])
-    with cc1:
-        etq_cot = st.selectbox("Activo Financiero / Commodity (Yahoo Finance):", options=list(mapa_cot.keys()))
-        clave_cot = mapa_cot[etq_cot]
-    with cc2:
-        iv_sel = st.selectbox(
-            "Intervalo de Vela Japonesa:",
-            options=[c for c, _, _ in ecopulse.OPCIONES_INTERVALO_VELA_YF],
-            index=2,
-        )
-        ecopulse.ESTADO_FILTROS_COTIZACIONES_YF["intervalo_vela"] = iv_sel
-    with cc3:
-        nv_sel = st.selectbox(
-            "Ventana (N° de Velas):",
-            options=[n for n, _ in ecopulse.OPCIONES_VENTANA_VELAS_YF],
-            index=1,
-            format_func=lambda n: "Todas las velas" if n == 0 else f"Últimas {n} velas",
-        )
-        ecopulse.ESTADO_FILTROS_COTIZACIONES_YF["num_velas"] = int(nv_sel)
-
-    col_act_yf = ecopulse.MAPA_CLAVE_VISTA_A_ACTIVO_YF[clave_cot]
-    num_v_cot = str(ecopulse.MAPA_VISTAS_MACRO.get(clave_cot, {}).get("numero", "74"))
-    fig_c = plt.figure(figsize=(15.0, 8.2), dpi=110)
-    ecopulse.dibujar_vista_cotizacion_individual_yf(
-        datos_macro,
-        columna_activo=col_act_yf,
-        numero_vista=num_v_cot,
-        modo="nivel",
-        fig=fig_c,
-    )
-    _renderizar_figura_matplotlib_st(fig_c)
-
-
-# === CATEGORÍA 4: PROYECCIONES (7 VISTAS + TABLERO EJECUTIVO DE TARJETAS) ===
-elif cat_sel == "4. Proyecciones":
-    vistas_proy = [v for v in ecopulse.CATALOGO_VISTAS_MACRO if v.get("categoria") == "proyecciones"]
-    mapa_proy = {f"[{v['codigo']}] {v['corto_base']}": str(v["clave"]) for v in vistas_proy}
-
-    cp1, cp2, cp3, cp4 = st.columns([3, 2, 2, 2])
-    with cp1:
-        etq_pr = st.selectbox("Vista de Proyección (7):", options=list(mapa_proy.keys()), index=len(mapa_proy) - 1)
-        clave_pr = mapa_proy[etq_pr]
-    with cp2:
-        corte_sel = st.selectbox(
-            "Corte Muestral COVID:",
-            options=[c for c, _, _ in ecopulse.OPCIONES_CORTE_COVID_SARIMAX],
-            format_func=lambda c: dict((k, etq) for k, etq, _ in ecopulse.OPCIONES_CORTE_COVID_SARIMAX).get(c, c),
-        )
-        ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["corte_muestral"] = corte_sel
-    with cp3:
-        mod_sar = st.selectbox(
-            "Especificación SARIMAX:",
-            options=[m[0] for m in ecopulse.CATALOGO_MODELOS_SARIMAX_CANDIDATOS],
-        )
-        ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["modelo_etiqueta"] = mod_sar
-    with cp4:
-        unid_pib = st.selectbox(
-            "Unidad / Escala PIB:",
-            options=["tco_2018", "yoy_pct", "usd_corriente", "backtest", "tabla"],
-            format_func=lambda u: {
-                "tco_2018": "Base 2018 (USD Const.)",
-                "yoy_pct": "Variación % a/a",
-                "usd_corriente": "USD Corrientes",
-                "backtest": "Backtest -1 Año vs Real",
-                "tabla": "Histórico Completo",
-            }.get(u, u),
-        )
-        ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["escala_pib_usd"] = unid_pib
-
-    fig_p = plt.figure(figsize=(15.5, 8.6), dpi=115)
-    if clave_pr == "proy_imacec_pulso_yoy":
-        ecopulse.dibujar_vista_proyeccion_pulso_imacec_yoy(datos_macro, fig=fig_p)
-    elif clave_pr == "proy_imacec_nm_sarimax":
-        ecopulse.dibujar_vista_proyeccion_sarimax_imacec_no_minero(datos_macro, fig=fig_p)
-    elif clave_pr == "proy_imacec_nm_pulso_yoy":
-        ecopulse.dibujar_vista_proyeccion_pulso_imacec_no_minero_yoy(datos_macro, fig=fig_p)
-    elif clave_pr == "proy_pib_anual_usd":
-        ecopulse.dibujar_vista_proyeccion_pib_anual_usd(datos_macro, fig=fig_p)
-    elif clave_pr == "proy_instituciones_4_principales":
-        ecopulse.dibujar_vista_4_principales_proyecciones_evolucion(datos_macro, fig=fig_p)
-    elif clave_pr == "proy_resumen_mi_proyeccion_vs_otras":
-        ecopulse.dibujar_vista_resumen_mi_proyeccion_vs_otras(datos_macro, fig=fig_p)
-    else:
-        ecopulse.dibujar_vista_proyeccion_sarimax_imacec(datos_macro, fig=fig_p)
-    _renderizar_figura_matplotlib_st(fig_p)
-
-
-# === CATEGORÍA 5: MODELACIÓN MACROECONÓMICA (IS-LM-BP MUNDELL-FLEMING) ===
-elif cat_sel == "5. Modelación Macroeconómica":
-    cm1, cm2, cm3, cm4 = st.columns(4)
-    with cm1:
-        reg_mf = st.selectbox("Régimen Cambiario:", ["flexible", "fijo"], format_func=lambda x: "Tipo de Cambio Flexible" if x == "flexible" else "Tipo de Cambio Fijo")
-        ecopulse.ESTADO_MODELADOR_ISLM_MF["regimen"] = reg_mf
-    with cm2:
-        mov_mf = st.selectbox("Movilidad de Capitales:", ["alta", "baja", "perfecta"], format_func=lambda x: f"Movilidad {x.capitalize()}")
-        ecopulse.ESTADO_MODELADOR_ISLM_MF["movilidad"] = mov_mf
-    with cm3:
-        shk_mf = st.selectbox(
-            "Shock de Política / Exógeno:",
-            ["fiscal_exp", "fiscal_con", "monet_exp", "monet_con", "externo_pos", "riesgo_alza"],
-            format_func=lambda s: {
-                "fiscal_exp": "Gasto Fiscal Expansivo (+ΔG)",
-                "fiscal_con": "Consolidación Fiscal (-ΔG)",
-                "monet_exp": "Impulso Monetario (+ΔM / -TPM)",
-                "monet_con": "Restricción Monetaria (-ΔM / +TPM)",
-                "externo_pos": "Boom Exportador / Cobre (+ΔY*)",
-                "riesgo_alza": "Alza Prima por Riesgo (+Δθ)",
-            }.get(s, s),
-        )
-    with cm4:
-        int_mf = st.selectbox("Intensidad del Shock:", ["leve", "moderado", "fuerte", "extremo"], index=1)
-        ecopulse.ESTADO_MODELADOR_ISLM_MF["shock"] = shk_mf
-        ecopulse.ESTADO_MODELADOR_ISLM_MF["intensidad"] = int_mf
-        ecopulse._sincronizar_preset_a_parametros_custom_mf(shk_mf, int_mf)
-
-    fig_mf = plt.figure(figsize=(15.5, 8.6), dpi=115)
-    ecopulse.dibujar_vista_modelador_islm_mundell_fleming(datos_macro, fig=fig_mf)
-    _renderizar_figura_matplotlib_st(fig_mf)
-
-
-# === CATEGORÍA 6: CALCULADORAS INTERACTIVAS (INSTRUMENTOS DE CÁLCULO INE / SII / BCCh) ===
-elif cat_sel == "6. Calculadoras":
-    tab_ipc, tab_uf, tab_tc = st.tabs([
-        "📈 1. Calculadora de IPC (Modelo Oficial INE)",
-        "🏦 2. Calculadora de UF (Valores Oficiales Diarios SII 2026)",
-        "💱 3. Calculadora de Tipo de Cambio (Divisas SII / BCCh)",
-    ])
+# =============================================================================
+# PANTALLA E: CATEGORÍA 6 — SUITE DE 3 CALCULADORAS INTERACTIVAS (INE / SII / BCCh)
+# =============================================================================
+elif pantalla == "calculadoras_hub":
+    c_cb1, c_cb2, c_cb3, c_cb4, c_cb5 = st.columns([1.8, 1.8, 2.2, 2.2, 2.2])
+    with c_cb1:
+        if st.button("🏠 Menú Principal", key="calc_home_btn", use_container_width=True):
+            ir_a_pantalla("menu_categorias")
+            st.rerun()
+    with c_cb2:
+        if st.button("📂 6. Calculadoras", key="calc_cat_btn", use_container_width=True):
+            ir_a_pantalla("sub_calculadoras")
+            st.rerun()
+    with c_cb3:
+        if st.button("📈 1. Calculadora IPC (INE)", type="primary" if st.session_state["calculadora_activa"] == "calc_ipc" else "secondary", use_container_width=True):
+            st.session_state["calculadora_activa"] = "calc_ipc"
+            st.rerun()
+    with c_cb4:
+        if st.button("🏦 2. Calculadora UF (SII 2026)", type="primary" if st.session_state["calculadora_activa"] == "calc_uf" else "secondary", use_container_width=True):
+            st.session_state["calculadora_activa"] = "calc_uf"
+            st.rerun()
+    with c_cb5:
+        if st.button("💱 3. Calculadora Tipo de Cambio", type="primary" if st.session_state["calculadora_activa"] == "calc_tipo_cambio" else "secondary", use_container_width=True):
+            st.session_state["calculadora_activa"] = "calc_tipo_cambio"
+            st.rerun()
 
     serie_ipc_ine = ecopulse._construir_serie_ipc_empalmada_ine()
     meses_nombres = ecopulse.NOMBRES_MESES_ES
+    calc_act = st.session_state["calculadora_activa"]
 
-    # -------------------------------------------------------------------------
-    # INSTRUMENTO 1: CALCULADORA DE IPC (https://calculadoraipc.ine.cl/)
-    # -------------------------------------------------------------------------
-    with tab_ipc:
-        st.markdown("#### 📈 Calculadora de IPC — Instituto Nacional de Estadísticas (INE)")
-        st.caption(
-            "Calcula la tasa de variación oficial del Índice de Precios al Consumidor (IPC) entre dos períodos y "
-            "actualiza valores monetarios en pesos chilenos ($ CLP), siguiendo la metodología de **calculadoraipc.ine.cl** "
-            "(cálculo interno con 12 decimales y variación oficial a 1 decimal)."
+    # --- 1. CALCULADORA DE IPC (MODELO OFICIAL INE — calculadoraipc.ine.cl) ---
+    if calc_act == "calc_ipc":
+        st.markdown(
+            '<div class="ep-barra-ruta" style="border-left:5px solid #D97706;">📈 &nbsp;[CALC-01] CALCULADORA DE IPC — INSTITUTO NACIONAL DE ESTADÍSTICAS (calculadoraipc.ine.cl)</div>',
+            unsafe_allow_html=True,
         )
-
         col_ipc_form, col_ipc_res = st.columns([5, 6])
         with col_ipc_form:
             st.markdown("##### 1. Período de Cálculo (Serie Empalmada Oficial Base 2023 = 100)")
+            if "ipc_m_ini_idx" not in st.session_state:
+                st.session_state["ipc_m_ini_idx"] = 8
+                st.session_state["ipc_a_ini_val"] = 2025
+                st.session_state["ipc_m_fin_idx"] = 8
+                st.session_state["ipc_a_fin_val"] = 2026
+                st.session_state["ipc_monto_val"] = 1000000.0
+
             c_i1, c_i2 = st.columns(2)
             with c_i1:
-                m_ini_nom = st.selectbox("Mes de Inicio:", meses_nombres, index=8, key="st_ipc_m_ini")
+                m_ini_nom = st.selectbox("📅 Mes de Inicio:", meses_nombres, index=int(st.session_state["ipc_m_ini_idx"]))
             with c_i2:
-                a_ini = st.selectbox("Año de Inicio:", list(range(2026, 1989, -1)), index=1, key="st_ipc_a_ini")
+                anios_l = list(range(2026, 1989, -1))
+                a_ini = st.selectbox("📅 Año de Inicio:", anios_l, index=anios_l.index(int(st.session_state["ipc_a_ini_val"])))
 
             c_f1, c_f2 = st.columns(2)
             with c_f1:
-                m_fin_nom = st.selectbox("Mes de Término:", meses_nombres[:9] if a_ini == 2026 else meses_nombres, index=8, key="st_ipc_m_fin")
+                m_fin_nom = st.selectbox("📅 Mes de Término:", meses_nombres, index=int(st.session_state["ipc_m_fin_idx"]))
             with c_f2:
-                a_fin = st.selectbox("Año de Término:", list(range(2026, 1989, -1)), index=0, key="st_ipc_a_fin")
+                a_fin = st.selectbox("📅 Año de Término:", anios_l, index=anios_l.index(int(st.session_state["ipc_a_fin_val"])))
 
             st.markdown("##### 2. Valor a Ajustar en Pesos Chilenos ($ CLP)")
-            monto_ipc_in = st.number_input("Valor a Ajustar ($ CLP):", min_value=0.0, value=1000000.0, step=50000.0, format="%.0f")
+            monto_ipc_in = st.number_input("Valor a Ajustar ($ CLP):", min_value=0.0, value=float(st.session_state["ipc_monto_val"]), step=50000.0, format="%.0f")
 
-            st.markdown("##### 3. Ejemplos Prácticos Oficiales del INE")
-            st.info(
-                "• **Variación mensual (Sep 2026 vs. Ago 2026)**: **+0,4 %** (113,59 vs. 113,15 pts)\n"
-                "• **Variación acumulada en el año (Sep 2026 vs. Dic 2025)**: **+4,0 %** (113,59 vs. 109,26 pts)\n"
-                "• **Variación a 12 meses (Sep 2026 vs. Sep 2025)**: **+4,1 %** (113,59 vs. 109,14 pts)"
+            st.markdown("##### 3. Ejemplos Oficiales de `calculadoraipc.ine.cl` (1 Clic):")
+            ce1, ce2, ce3 = st.columns(3)
+            with ce1:
+                if st.button("📌 Var. Mensual (Ago➔Sep 2026)", use_container_width=True):
+                    st.session_state["ipc_m_ini_idx"], st.session_state["ipc_a_ini_val"] = 7, 2026
+                    st.session_state["ipc_m_fin_idx"], st.session_state["ipc_a_fin_val"] = 8, 2026
+                    st.rerun()
+            with ce2:
+                if st.button("📌 Acumulada Año (Dic 25➔Sep 26)", use_container_width=True):
+                    st.session_state["ipc_m_ini_idx"], st.session_state["ipc_a_ini_val"] = 11, 2025
+                    st.session_state["ipc_m_fin_idx"], st.session_state["ipc_a_fin_val"] = 8, 2026
+                    st.rerun()
+            with ce3:
+                if st.button("📌 Anual 12M (Sep 25➔Sep 26)", use_container_width=True):
+                    st.session_state["ipc_m_ini_idx"], st.session_state["ipc_a_ini_val"] = 8, 2025
+                    st.session_state["ipc_m_fin_idx"], st.session_state["ipc_a_fin_val"] = 8, 2026
+                    st.rerun()
+
+            st.caption(
+                "Nota Metodológica INE: Internamente se realizan los cálculos con 12 decimales sobre las series "
+                "empalmadas para fines de reajustabilidad. La variación oficial presentada es a un decimal."
             )
 
         with col_ipc_res:
@@ -611,14 +965,14 @@ elif cat_sel == "6. Calculadoras":
             monto_ajustado = round(monto_ipc_in * factor_12d)
             dif_pesos = monto_ajustado - round(monto_ipc_in)
 
-            st.markdown(f"##### 📊 Resultado Oficial: {m_ini_nom} {a_ini} ➔ {m_fin_nom} {a_fin}")
+            st.markdown(f"##### 📊 Resultado Oficial INE: {m_ini_nom} {a_ini} ➔ {m_fin_nom} {a_fin}")
             k1, k2, k3 = st.columns(3)
             k1.metric("Valor Ajustado ($ CLP)", f"$ {_fmt_clp(monto_ajustado, 0)}", f"{'+' if dif_pesos >= 0 else '-'}$ {_fmt_clp(abs(dif_pesos), 0)} CLP")
             k2.metric("Variación del Período (INE)", f"{var_1d:+.1f} %".replace(".", ","), f"Exacta: {var_exacta:+.2f}%".replace(".", ","))
-            k3.metric("Factor Reajuste (12 dec.)", f"{factor_12d:.6f}".replace(".", ","), f"{ipc_0:.2f} ➔ {ipc_1:.2f} pts")
+            k3.metric("Factor (12 decimales)", f"{factor_12d:.6f}".replace(".", ","), f"{ipc_0:.2f} ➔ {ipc_1:.2f} pts")
 
             st.markdown("##### 📋 Tabla Oficial SII / INE: UTM, UTA e Índice IPC (Base 2023 = 100)")
-            anio_tbl_ipc = st.selectbox("Consultar Año en Tabla SII/INE:", [2026, 2025, 2024, 2023, 2022, 2021, 2020], index=0)
+            anio_tbl_ipc = st.selectbox("Año en Tabla SII/INE:", [2026, 2025, 2024, 2023, 2022, 2021, 2020], index=0)
             filas_ipc_df = []
             for m_k in range(1, 13):
                 d_k = serie_ipc_ine.get((anio_tbl_ipc, m_k), {})
@@ -632,33 +986,29 @@ elif cat_sel == "6. Calculadoras":
                     "Mes": meses_nombres[m_k - 1],
                     "UTM ($)": f"${_fmt_clp(utm_v, 0)}" if np.isfinite(utm_v) else "—",
                     "UTA ($)": f"${_fmt_clp(uta_v, 0)}" if np.isfinite(uta_v) else "—",
-                    "IPC (Puntos 2023=100)": f"{ipc_v:.2f}".replace(".", ",") if np.isfinite(ipc_v) else "Pendiente",
+                    "IPC (Puntos)": f"{ipc_v:.2f}".replace(".", ",") if np.isfinite(ipc_v) else "Pendiente",
                     "Mensual (%)": f"{mom_v:+.1f}%".replace(".", ",") if np.isfinite(mom_v) else "—",
-                    "Acumulado Año (%)": f"{ac_v:+.1f}%".replace(".", ",") if np.isfinite(ac_v) else "—",
-                    "Últimos 12M (%)": f"{yoy_v:+.1f}%".replace(".", ",") if np.isfinite(yoy_v) else "—",
+                    "Acum. Año (%)": f"{ac_v:+.1f}%".replace(".", ",") if np.isfinite(ac_v) else "—",
+                    "Últ. 12M (%)": f"{yoy_v:+.1f}%".replace(".", ",") if np.isfinite(yoy_v) else "—",
                 })
             st.dataframe(pd.DataFrame(filas_ipc_df), use_container_width=True, hide_index=True)
 
-    # -------------------------------------------------------------------------
-    # INSTRUMENTO 2: CALCULADORA DE UF (https://www.sii.cl/valores_y_fechas/uf/uf2026.htm)
-    # -------------------------------------------------------------------------
-    with tab_uf:
-        st.markdown("#### 🏦 Calculadora de UF — Valores Oficiales Diarios del SII (`uf2026.htm`)")
-        st.caption(
-            "Convierte entre Unidades de Fomento (UF) y Pesos Chilenos ($ CLP) para cualquier día exacto utilizando "
-            "los valores diarios oficiales publicados por el Servicio de Impuestos Internos en **sii.cl/valores_y_fechas/uf/uf2026.htm**."
+    # --- 2. CALCULADORA DE UF (VALORES OFICIALES SII — sii.cl/valores_y_fechas/uf/uf2026.htm) ---
+    elif calc_act == "calc_uf":
+        st.markdown(
+            '<div class="ep-barra-ruta" style="border-left:5px solid #059669;">🏦 &nbsp;[CALC-02] CALCULADORA DE UF — VALORES DIARIOS OFICIALES SII (sii.cl/valores_y_fechas/uf/uf2026.htm)</div>',
+            unsafe_allow_html=True,
         )
-
         col_uf_form, col_uf_tbl = st.columns([5, 6])
         with col_uf_form:
-            st.markdown("##### 1. Fecha Exacta del Valor Oficial de la UF (SII)")
+            st.markdown("##### 1. Selecciona la Fecha Exacta del Valor Oficial de la UF (SII)")
             cu1, cu2, cu3 = st.columns(3)
             with cu1:
-                d_uf = st.selectbox("Día:", list(range(1, 32)), index=3, key="st_uf_dia")
+                d_uf = st.selectbox("Día:", list(range(1, 32)), index=3)
             with cu2:
-                m_uf_nom = st.selectbox("Mes:", meses_nombres[:11], index=10, key="st_uf_mes")
+                m_uf_nom = st.selectbox("Mes:", meses_nombres[:11], index=10)
             with cu3:
-                a_uf = st.selectbox("Año:", list(range(2026, 2009, -1)), index=0, key="st_uf_anio")
+                a_uf = st.selectbox("Año:", list(range(2026, 2009, -1)), index=0)
 
             m_uf = meses_nombres.index(m_uf_nom) + 1
             tbl_uf_sii = ecopulse.obtener_tabla_uf_diaria_oficial_sii(int(a_uf))
@@ -666,7 +1016,7 @@ elif cat_sel == "6. Calculadoras":
                 d_uf = min(d_uf, 9) if (a_uf == 2026 and m_uf == 11) else 1
             uf_dia_val = tbl_uf_sii.get((m_uf, d_uf), 41268.88)
 
-            st.success(f"**Valor Oficial SII ({d_uf:02d} de {m_uf_nom} de {a_uf})**:  **1 UF = $ {_fmt_clp(uf_dia_val, 2)} CLP**")
+            st.success(f"**1 UF Oficial SII ({d_uf:02d} de {m_uf_nom} de {a_uf})  =  $ {_fmt_clp(uf_dia_val, 2)} CLP**")
 
             modo_uf_st = st.radio(
                 "2. Dirección de Conversión:",
@@ -714,11 +1064,12 @@ elif cat_sel == "6. Calculadoras":
                 })
             st.dataframe(pd.DataFrame(filas_sii_3col), use_container_width=True, hide_index=True)
 
-    # -------------------------------------------------------------------------
-    # INSTRUMENTO 3: CALCULADORA DE TIPO DE CAMBIO (DIVISAS SII / BCCh)
-    # -------------------------------------------------------------------------
-    with tab_tc:
-        st.markdown("#### 💱 Calculadora de Tipo de Cambio — Conversor de Divisas y Unidades (SII / BCCh)")
+    # --- 3. CALCULADORA DE TIPO DE CAMBIO (DIVISAS SII / BCCh) ---
+    else:
+        st.markdown(
+            '<div class="ep-barra-ruta" style="border-left:5px solid #0284C7;">💱 &nbsp;[CALC-03] CALCULADORA DE TIPO DE CAMBIO — CONVERSOR MULTIMONEDA (SII / BCCh)</div>',
+            unsafe_allow_html=True,
+        )
         monedas_tc = [
             ("USD", "🇺🇸 USD — Dólar Observado (SII / BCCh)", 948.50),
             ("CLP", "🇨🇱 CLP — Peso Chileno ($)", 1.0),
@@ -761,7 +1112,7 @@ elif cat_sel == "6. Calculadoras":
         with col_tc_der:
             st.markdown("##### 🌐 Equivalencia Simultánea de tu Monto en Todas las Unidades")
             eq_cols = st.columns(3)
-            for idx_e, (c_e, etq_e, v_e) in enumerate(monedas_tc[:6]):
+            for idx_e, (c_e, etq_e, _) in enumerate(monedas_tc[:6]):
                 val_conv_e = monto_en_clp / mapa_clp_tc[c_e]
                 with eq_cols[idx_e % 3]:
                     st.metric(
@@ -769,3 +1120,157 @@ elif cat_sel == "6. Calculadoras":
                         f"{'$ ' if c_e == 'CLP' else ''}{_fmt_clp(val_conv_e, 0 if c_e == 'CLP' else 2)} {c_e}",
                         f"Paridad: ${_fmt_clp(mapa_clp_tc[c_e], 2 if c_e != 'CLP' else 0)} CLP",
                     )
+
+
+# =============================================================================
+# PANTALLA F: VISTA ANALÍTICA A PANTALLA COMPLETA CON BREADCRUMB INTERACTIVO
+# =============================================================================
+else:
+    clave_v = st.session_state["vista_actual"]
+    if clave_v not in ecopulse.ORDEN_CLAVES_VISTAS:
+        clave_v = ecopulse.ORDEN_CLAVES_VISTAS[0]
+        st.session_state["vista_actual"] = clave_v
+
+    idx_v = ecopulse.ORDEN_CLAVES_VISTAS.index(clave_v)
+    info_r = ecopulse.obtener_ruta_navegacion_vista(clave_v)
+    cat_k = info_r["categoria_clave"]
+    sub_k = info_r["subcategoria_clave"]
+
+    # Barra Superior de Ruta Interactiva (Idéntica a frame_ruta_breadcrumb_tk en la App de Escritorio)
+    if sub_k:
+        b1, b2, b3, b4, b5, b6 = st.columns([0.9, 0.9, 1.8, 2.3, 2.3, 3.2])
+    else:
+        b1, b2, b3, b4, b6 = st.columns([1.0, 1.0, 2.0, 2.8, 4.2])
+        b5 = None
+
+    with b1:
+        if st.button("◀ Ant.", use_container_width=True):
+            ir_a_pantalla("vista_analitica", ecopulse.ORDEN_CLAVES_VISTAS[(idx_v - 1) % len(ecopulse.ORDEN_CLAVES_VISTAS)])
+            st.rerun()
+    with b2:
+        if st.button("Sig. ▶", use_container_width=True):
+            ir_a_pantalla("vista_analitica", ecopulse.ORDEN_CLAVES_VISTAS[(idx_v + 1) % len(ecopulse.ORDEN_CLAVES_VISTAS)])
+            st.rerun()
+    with b3:
+        if st.button("🏠 Menú Principal", key="bc_home", use_container_width=True):
+            ir_a_pantalla("menu_categorias")
+            st.rerun()
+    with b4:
+        if st.button(f"{info_r['categoria_icono']} {info_r['categoria_titulo']}", key="bc_cat", use_container_width=True):
+            navegar_a_destino(cat_k)
+            st.rerun()
+    if b5 is not None and sub_k:
+        with b5:
+            if st.button(f"{info_r['subcategoria_icono']} {info_r['subcategoria_titulo']}", key="bc_sub", use_container_width=True):
+                ir_a_pantalla(sub_k)
+                st.rerun()
+    with b6:
+        st.markdown(
+            f'<div style="background:#FEF3C7; color:#0F172A; padding:7px 12px; border-radius:6px; font-weight:800; font-size:0.84rem; text-align:center;">📍 {info_r["vista_corto"]} ({idx_v + 1}/{len(ecopulse.ORDEN_CLAVES_VISTAS)})</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Controles rápidos contextuales según la categoría de la vista abierta
+    if clave_v in ecopulse.CLAVES_VISTAS_MACRO_INDIVIDUALES:
+        cf1, cf2, cf3 = st.columns([3, 3, 6])
+        with cf1:
+            modo_sel = st.radio(
+                "Medición:",
+                ["yoy", "nivel"],
+                index=0 if ecopulse.ESTADO_FILTROS_MACRO_BOTONES.get("modo", "yoy") == "yoy" else 1,
+                format_func=lambda x: "Var. % a/a" if x == "yoy" else "Nivel / Índice",
+                horizontal=True,
+            )
+            ecopulse.ESTADO_FILTROS_MACRO_BOTONES["modo"] = modo_sel
+        with cf2:
+            vent_opts = ["3A", "5A", "10A", "20A", "MAX"]
+            vent_act = str(ecopulse.ESTADO_FILTROS_MACRO_BOTONES.get("ventana", "10A")).upper()
+            vent_sel = st.selectbox("Ventana Temporal:", vent_opts, index=vent_opts.index(vent_act) if vent_act in vent_opts else 2)
+            ecopulse.ESTADO_FILTROS_MACRO_BOTONES["ventana"] = vent_sel
+
+        fig_v = plt.figure(figsize=(15.2, 8.3), dpi=115)
+        ecopulse.dibujar_vista_macro_individual(datos_macro, clave_vista=clave_v, modo=modo_sel, fig=fig_v)
+        _mostrar_figura_mpl(fig_v)
+
+    elif clave_v in ecopulse.MAPA_CLAVE_VISTA_A_ACTIVO_YF:
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            iv_s = st.selectbox("🕯️ Intervalo de Vela Japonesa:", [c for c, _, _ in ecopulse.OPCIONES_INTERVALO_VELA_YF], index=2)
+            ecopulse.ESTADO_FILTROS_COTIZACIONES_YF["intervalo_vela"] = iv_s
+        with cc2:
+            nv_s = st.selectbox("🔍 Ventana (N° de Velas):", [n for n, _ in ecopulse.OPCIONES_VENTANA_VELAS_YF], index=1, format_func=lambda n: "Todas las velas" if n == 0 else f"{n} velas")
+            ecopulse.ESTADO_FILTROS_COTIZACIONES_YF["num_velas"] = int(nv_s)
+
+        col_act = ecopulse.MAPA_CLAVE_VISTA_A_ACTIVO_YF[clave_v]
+        num_v = str(ecopulse.MAPA_VISTAS_MACRO.get(clave_v, {}).get("numero", "74"))
+        fig_v = plt.figure(figsize=(15.2, 8.3), dpi=115)
+        ecopulse.dibujar_vista_cotizacion_individual_yf(datos_macro, columna_activo=col_act, numero_vista=num_v, modo="nivel", fig=fig_v)
+        _mostrar_figura_mpl(fig_v)
+
+    elif clave_v in ecopulse.CLAVES_VISTAS_PROYECCIONES:
+        cp1, cp2, cp3 = st.columns(3)
+        with cp1:
+            corte_s = st.selectbox(
+                "🔮 Corte Muestral COVID:",
+                [c for c, _, _ in ecopulse.OPCIONES_CORTE_COVID_SARIMAX],
+                format_func=lambda c: dict((k, etq) for k, etq, _ in ecopulse.OPCIONES_CORTE_COVID_SARIMAX).get(c, c),
+            )
+            ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["corte_muestral"] = corte_s
+        with cp2:
+            mod_s = st.selectbox("Especificación SARIMAX:", [m[0] for m in ecopulse.CATALOGO_MODELOS_SARIMAX_CANDIDATOS])
+            ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["modelo_etiqueta"] = mod_s
+        with cp3:
+            unid_s = st.selectbox(
+                "Unidad / Escala PIB:",
+                ["tco_2018", "yoy_pct", "usd_corriente", "backtest", "tabla"],
+                format_func=lambda u: {"tco_2018": "Base 2018 (USD Const.)", "yoy_pct": "Var. % a/a", "usd_corriente": "USD Corrientes", "backtest": "Backtest -1 Año", "tabla": "Histórico"}.get(u, u),
+            )
+            ecopulse.ESTADO_FILTROS_PROYECCION_SARIMAX["escala_pib_usd"] = unid_s
+
+        fig_v = plt.figure(figsize=(15.5, 8.6), dpi=115)
+        if clave_v == "proy_imacec_pulso_yoy":
+            ecopulse.dibujar_vista_proyeccion_pulso_imacec_yoy(datos_macro, fig=fig_v)
+        elif clave_v == "proy_imacec_nm_sarimax":
+            ecopulse.dibujar_vista_proyeccion_sarimax_imacec_no_minero(datos_macro, fig=fig_v)
+        elif clave_v == "proy_imacec_nm_pulso_yoy":
+            ecopulse.dibujar_vista_proyeccion_pulso_imacec_no_minero_yoy(datos_macro, fig=fig_v)
+        elif clave_v == "proy_pib_anual_usd":
+            ecopulse.dibujar_vista_proyeccion_pib_anual_usd(datos_macro, fig=fig_v)
+        elif clave_v == "proy_instituciones_4_principales":
+            ecopulse.dibujar_vista_4_principales_proyecciones_evolucion(datos_macro, fig=fig_v)
+        elif clave_v == "proy_resumen_mi_proyeccion_vs_otras":
+            ecopulse.dibujar_vista_resumen_mi_proyeccion_vs_otras(datos_macro, fig=fig_v)
+        else:
+            ecopulse.dibujar_vista_proyeccion_sarimax_imacec(datos_macro, fig=fig_v)
+        _mostrar_figura_mpl(fig_v)
+
+    elif clave_v == "modelo_islm_mf":
+        cm1, cm2, cm3, cm4 = st.columns(4)
+        with cm1:
+            reg_mf = st.selectbox("Régimen Cambiario:", ["flexible", "fijo"], format_func=lambda x: "TC Flexible" if x == "flexible" else "TC Fijo")
+            ecopulse.ESTADO_MODELADOR_ISLM_MF["regimen"] = reg_mf
+        with cm2:
+            mov_mf = st.selectbox("Movilidad Capitales:", ["alta", "baja", "perfecta"], format_func=lambda x: f"Movilidad {x.capitalize()}")
+            ecopulse.ESTADO_MODELADOR_ISLM_MF["movilidad"] = mov_mf
+        with cm3:
+            shk_mf = st.selectbox(
+                "Shock Macroeconómico:",
+                ["fiscal_exp", "fiscal_con", "monet_exp", "monet_con", "externo_pos", "riesgo_alza"],
+                format_func=lambda s: {
+                    "fiscal_exp": "Gasto Fiscal Expansivo (+ΔG)",
+                    "fiscal_con": "Consolidación Fiscal (-ΔG)",
+                    "monet_exp": "Impulso Monetario (+ΔM)",
+                    "monet_con": "Restricción Monetaria (-ΔM)",
+                    "externo_pos": "Boom Exportador (+ΔY*)",
+                    "riesgo_alza": "Alza Prima por Riesgo (+Δθ)",
+                }.get(s, s),
+            )
+        with cm4:
+            int_mf = st.selectbox("Intensidad:", ["leve", "moderado", "fuerte", "extremo"], index=1)
+            ecopulse.ESTADO_MODELADOR_ISLM_MF["shock"] = shk_mf
+            ecopulse.ESTADO_MODELADOR_ISLM_MF["intensidad"] = int_mf
+            ecopulse._sincronizar_preset_a_parametros_custom_mf(shk_mf, int_mf)
+
+        fig_v = plt.figure(figsize=(15.5, 8.6), dpi=115)
+        ecopulse.dibujar_vista_modelador_islm_mundell_fleming(datos_macro, fig=fig_v)
+        _mostrar_figura_mpl(fig_v)
