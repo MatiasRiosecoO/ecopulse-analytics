@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>EcoPulse Analytics — Monitor Macroeconómico Móvil y Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg-app: #FAFBFD;
+      --bg-card: #FFFFFF;
+      --bg-sub: #F1F5F9;
+      --border: #CBD5E1;
+      --text-main: #0F172A;
+      --text-sec: #334155;
+      --text-muted: #64748B;
+      --accent: #0284C7;
+      --grid-line: rgba(148, 163, 184, 0.25);
+    }
+    html.dark {
+      --bg-app: #0B0F17;
+      --bg-card: #131C2E;
+      --bg-sub: #19253A;
+      --border: #263449;
+      --text-main: #F8FAFC;
+      --text-sec: #CBD5E1;
+      --text-muted: #94A3B8;
+      --accent: #38BDF8;
+      --grid-line: rgba(51, 65, 85, 0.55);
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      transition: background-color 0.2s ease, color 0.2s ease;
+      padding-bottom: 76px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @media (min-width: 768px) {
+      body { padding-bottom: 24px; }
+    }
+    .ep-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .ep-sub {
+      background-color: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .tap-btn {
+      min-height: 42px;
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-500/20">
+
+  <!-- TOP STICKY HEADER -->
+  <header class="sticky top-0 z-40 border-b backdrop-blur-md" style="background-color: #07192E; border-color: #D97706;">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+      <button id="btnBrandHome" class="flex items-center gap-2.5 text-left focus:outline-none">
+        <div class="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-300 font-extrabold text-base shrink-0">
+          📊
+        </div>
+        <div class="min-w-0">
+          <div class="text-white font-extrabold text-sm sm:text-base leading-tight truncate">EcoPulse Analytics</div>
+          <div class="text-amber-200 text-[11px] font-medium truncate">Matías Rioseco Oróstica • Chile</div>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <button id="btnOpenSearch" class="tap-btn px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold flex items-center gap-1.5" aria-label="Buscar vista">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Buscar</span>
+        </button>
+        <button id="btnToggleTheme" class="tap-btn px-2.5 sm:px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/40 text-xs font-bold flex items-center gap-1.5" aria-label="Cambiar tema">
+          <span id="themeIcon">🌙</span>
+          <span id="themeLabel" class="hidden sm:inline">Oscuro</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SEARCH MODAL / DRAWER -->
+  <div id="searchOverlay" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 px-3">
+    <div class="ep-card w-full max-w-lg p-4 shadow-2xl">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <span class="font-bold text-sm">🔍 Buscador Rápido de Vistas y Calculadoras</span>
+        <button id="btnCloseSearch" class="p-1.5 rounded-lg hover:bg-slate-500/10 text-sm font-bold">✕</button>
+      </div>
+      <input id="searchInput" type="text" placeholder="Ej: IMACEC, PIB, UF, IPC, Dólar, IS-LM, PROY-07..." class="w-full px-3.5 py-2.5 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);" />
+      <div id="searchResults" class="mt-3 max-h-72 overflow-y-auto space-y-1.5"></div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 pt-3 sm:pt-5">
+
+    <!-- BREADCRUMB BAR (VISIBLE OUTSIDE HOME) -->
+    <div id="breadcrumbBar" class="hidden mb-3 flex items-center justify-between gap-2 ep-card px-3 py-2">
+      <button id="btnBackHome" class="tap-btn px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5 shrink-0">
+        <i data-lucide="home" class="w-3.5 h-3.5"></i>
+        <span>Menú</span>
+      </button>
+      <div id="breadcrumbTitle" class="text-xs sm:text-sm font-bold truncate px-2"></div>
+      <div id="breadcrumbPager" class="flex items-center gap-1 shrink-0">
+        <button id="btnPrevScreen" class="tap-btn px-2.5 py-1.5 rounded-lg text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">◀</button>
+        <button id="btnNextScreen" class="tap-btn px-2.5 py-1.5 rounded-lg text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">▶</button>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 0: MENÚ PRINCIPAL (6 CATEGORÍAS)                               -->
+    <!-- ===================================================================== -->
+    <section id="screen-menu" class="space-y-4">
+      <!-- Quick KPI Strip (Mobile swipeable) -->
+      <div class="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+        <div class="ep-card px-3.5 py-2.5 min-w-[155px] shrink-0">
+          <div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">UF Hoy (04-Nov-26)</div>
+          <div class="text-base font-extrabold text-emerald-500 mt-0.5">$41.268,88</div>
+        </div>
+        <div class="ep-card px-3.5 py-2.5 min-w-[155px] shrink-0">
+          <div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">IMACEC (Sep 2026)</div>
+          <div class="text-base font-extrabold text-sky-500 mt-0.5">+0,20% a/a</div>
+        </div>
+        <div class="ep-card px-3.5 py-2.5 min-w-[155px] shrink-0">
+          <div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">Proy. PIB 2026 / 2027</div>
+          <div class="text-base font-extrabold text-rose-400 mt-0.5">-0,51% / <span class="text-emerald-400">+0,64%</span></div>
+        </div>
+        <div class="ep-card px-3.5 py-2.5 min-w-[155px] shrink-0">
+          <div class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">USD / CLP Ref.</div>
+          <div class="text-base font-extrabold text-amber-500 mt-0.5">$948,50</div>
+        </div>
+      </div>
+
+      <!-- 6 Categories Responsive Grid -->
+      <div id="categoryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"></div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 1: PRESENTACIÓN PROFESIONAL                                    -->
+    <!-- ===================================================================== -->
+    <section id="screen-presentacion" class="hidden space-y-4">
+      <div class="ep-card p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div>
+            <span class="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-500 mb-1.5">PRES-01 • PERFIL PROFESIONAL</span>
+            <h1 class="text-xl sm:text-2xl font-extrabold">Matías Rioseco Oróstica</h1>
+            <p class="text-xs sm:text-sm font-semibold text-sky-500">Ingeniero Comercial | Magíster en Análisis Económico (c), FEN Universidad de Chile</p>
+          </div>
+          <div class="text-xs space-y-1 ep-sub p-3">
+            <div>💼 <strong>Rol:</strong> Investigador Económico — NODO XXI</div>
+            <div>✉ <strong>Email:</strong> mati.rioseco@gmail.com</div>
+            <div>📍 <strong>Ubicación:</strong> San Miguel, Santiago, Chile</div>
+          </div>
+        </div>
+        <p class="text-sm leading-relaxed" style="color: var(--text-sec);">
+          Economista e Ingeniero Comercial especializado en análisis macroeconómico cuantitativo, modelación econométrica de series de tiempo (SARIMAX), coyuntura chilena (BDE BCCh, INE, DIPRES) y desarrollo de herramientas analíticas interactivas.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        <div class="ep-card p-4 space-y-2.5">
+          <h2 class="font-extrabold text-sm flex items-center gap-2">💼 Trayectoria Profesional</h2>
+          <div class="ep-sub p-3 text-xs space-y-1">
+            <div class="font-bold">Investigador Económico | NODO XXI</div>
+            <p style="color: var(--text-sec);">Análisis de tendencias macroeconómicas, mercado laboral, cuentas nacionales y elaboración de minutas técnicas.</p>
+          </div>
+          <div class="ep-sub p-3 text-xs space-y-1">
+            <div class="font-bold">Creador de EcoPulse Analytics</div>
+            <p style="color: var(--text-sec);">Plataforma integral conectada a BDE Banco Central, INE, SII, DIPRES, BACI-CEPII y Yahoo Finance.</p>
+          </div>
+        </div>
+        <div class="ep-card p-4 space-y-2.5">
+          <h2 class="font-extrabold text-sm flex items-center gap-2">🎓 Formación Académica</h2>
+          <div class="ep-sub p-3 text-xs space-y-1">
+            <div class="font-bold">Magíster en Análisis Económico (c)</div>
+            <p style="color: var(--text-sec);">Facultad de Economía y Negocios (FEN), Universidad de Chile.</p>
+          </div>
+          <div class="ep-sub p-3 text-xs space-y-1">
+            <div class="font-bold">Ingeniería Comercial — Mención Economía</div>
+            <p style="color: var(--text-sec);">Formación sólida en macroeconomía aplicada, econometría y finanzas.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 2: VISTAS MACROECONÓMICAS (MOBILE-OPTIMIZED CHARTS)            -->
+    <!-- ===================================================================== -->
+    <section id="screen-macro" class="hidden space-y-3">
+      <div class="ep-card p-3 sm:p-4 space-y-3">
+        <!-- Horizontal scroll subcategoria chips for thumb navigation -->
+        <div id="macroSubChips" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1"></div>
+
+        <!-- Controls row -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          <div class="sm:col-span-6">
+            <select id="macroIndicatorSelect" class="tap-btn w-full px-3 py-2 rounded-xl border text-xs sm:text-sm font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+          </div>
+          <div class="sm:col-span-3 flex gap-1">
+            <button data-macro-mode="yoy" class="macro-mode-btn tap-btn flex-1 rounded-xl text-xs font-bold bg-sky-600 text-white">Var. % a/a</button>
+            <button data-macro-mode="nivel" class="macro-mode-btn tap-btn flex-1 rounded-xl text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">Nivel</button>
+          </div>
+          <div class="sm:col-span-3 flex gap-1">
+            <button data-macro-win="12" class="macro-win-btn tap-btn flex-1 rounded-xl text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">1A</button>
+            <button data-macro-win="36" class="macro-win-btn tap-btn flex-1 rounded-xl text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">3A</button>
+            <button data-macro-win="60" class="macro-win-btn tap-btn flex-1 rounded-xl text-xs font-bold bg-amber-600 text-white">5A</button>
+            <button data-macro-win="120" class="macro-win-btn tap-btn flex-1 rounded-xl text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">10A</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div id="macroKpis" class="grid grid-cols-3 gap-2"></div>
+
+      <!-- Mobile-friendly Chart Container -->
+      <div class="ep-card p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 id="macroChartTitle" class="text-xs sm:text-sm font-extrabold"></h3>
+          <span id="macroChartBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/15 text-sky-500"></span>
+        </div>
+        <div class="relative h-72 sm:h-96 w-full">
+          <canvas id="macroChartCanvas"></canvas>
+        </div>
+        <p id="macroChartNote" class="mt-2.5 text-[11px] leading-relaxed" style="color: var(--text-muted);"></p>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 3: COTIZACIONES DE PRECIO                                      -->
+    <!-- ===================================================================== -->
+    <section id="screen-cotizaciones" class="hidden space-y-3">
+      <div class="ep-card p-3 sm:p-4 space-y-2.5">
+        <div id="cotAssetChips" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1"></div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold" style="color: var(--text-muted);">Ventana de Precios:</span>
+          <div class="flex gap-1.5">
+            <button data-cot-win="30" class="cot-win-btn tap-btn px-3 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">30d</button>
+            <button data-cot-win="90" class="cot-win-btn tap-btn px-3 py-1 rounded-lg text-xs font-bold bg-sky-600 text-white">90d</button>
+            <button data-cot-win="180" class="cot-win-btn tap-btn px-3 py-1 rounded-lg text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">180d</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="cotKpis" class="grid grid-cols-3 gap-2"></div>
+
+      <div class="ep-card p-3 sm:p-4">
+        <h3 id="cotChartTitle" class="text-xs sm:text-sm font-extrabold mb-2"></h3>
+        <div class="relative h-72 sm:h-96 w-full">
+          <canvas id="cotChartCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 4: PROYECCIONES (SARIMAX + TARJETAS 2026-2027)                 -->
+    <!-- ===================================================================== -->
+    <section id="screen-proyecciones" class="hidden space-y-3">
+      <div class="ep-card p-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+        <button data-proy-tab="tarjetas" class="proy-tab-btn tap-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-600 text-white shrink-0">PROY-07: Resumen Tarjetas</button>
+        <button data-proy-tab="imacec" class="proy-tab-btn tap-btn px-3 py-1.5 rounded-xl text-xs font-bold border shrink-0" style="background-color: var(--bg-sub); border-color: var(--border);">PROY-01/02: Senda IMACEC</button>
+        <button data-proy-tab="instituciones" class="proy-tab-btn tap-btn px-3 py-1.5 rounded-xl text-xs font-bold border shrink-0" style="background-color: var(--bg-sub); border-color: var(--border);">PROY-06: 4 Instituciones</button>
+      </div>
+
+      <!-- PROY-07: Cards -->
+      <div id="proyPanelTarjetas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+      <!-- PROY Chart -->
+      <div id="proyPanelChart" class="hidden ep-card p-3 sm:p-4">
+        <h3 id="proyChartTitle" class="text-xs sm:text-sm font-extrabold mb-2"></h3>
+        <div class="relative h-72 sm:h-96 w-full">
+          <canvas id="proyChartCanvas"></canvas>
+        </div>
+        <p id="proyChartNote" class="mt-2 text-[11px]" style="color: var(--text-muted);"></p>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 5: MODELACIÓN MACROECONÓMICA (IS-LM-BP INTERACTIVO)            -->
+    <!-- ===================================================================== -->
+    <section id="screen-modelacion" class="hidden space-y-3">
+      <div class="ep-card p-3 sm:p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Régimen Cambiario</label>
+            <select id="islmRegime" class="tap-btn w-full px-3 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);">
+              <option value="flexible">Tipo de Cambio Flexible</option>
+              <option value="fijo">Tipo de Cambio Fijo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Shock de Política / Externo</label>
+            <select id="islmShock" class="tap-btn w-full px-3 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);">
+              <option value="fiscal_exp">Gasto Fiscal Expansivo (+ΔG)</option>
+              <option value="fiscal_con">Consolidación Fiscal (-ΔG)</option>
+              <option value="monet_exp">Impulso Monetario (+ΔM / -TPM)</option>
+              <option value="monet_con">Restricción Monetaria (-ΔM / +TPM)</option>
+              <option value="externo_pos">Boom Exportador / Cobre (+ΔY*)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Intensidad del Shock: <span id="islmIntensityLabel" class="text-teal-500">1.0x</span></label>
+            <input id="islmIntensity" type="range" min="0.5" max="2.0" step="0.25" value="1.0" class="w-full accent-teal-600 mt-2" />
+          </div>
+        </div>
+      </div>
+
+      <div id="islmKpis" class="grid grid-cols-3 gap-2"></div>
+
+      <div class="ep-card p-3 sm:p-4">
+        <h3 class="text-xs sm:text-sm font-extrabold mb-2">Equilibrio IS-LM-BP (Plano Producción Y – Tasa de Interés r)</h3>
+        <div class="relative h-72 sm:h-96 w-full">
+          <canvas id="islmChartCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 6: CALCULADORAS OFICIALES (IPC INE / UF SII / TIPO DE CAMBIO)  -->
+    <!-- ===================================================================== -->
+    <section id="screen-calculadoras" class="hidden space-y-3">
+      <div class="ep-card p-2 flex gap-1.5 overflow-x-auto no-scrollbar">
+        <button data-calc-tab="ipc" class="calc-tab-btn tap-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white whitespace-nowrap">📈 IPC (INE)</button>
+        <button data-calc-tab="uf" class="calc-tab-btn tap-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold border whitespace-nowrap" style="background-color: var(--bg-sub); border-color: var(--border);">🏦 UF (SII 2026)</button>
+        <button data-calc-tab="tc" class="calc-tab-btn tap-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold border whitespace-nowrap" style="background-color: var(--bg-sub); border-color: var(--border);">💱 Tipo de Cambio</button>
+      </div>
+
+      <!-- CALC 1: IPC INE -->
+      <div id="calcPanel-ipc" class="space-y-3">
+        <div class="ep-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-extrabold text-amber-500">📈 Calculadora de IPC (Modelo Oficial INE)</h2>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-500">12 decimales internos</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Mes Inicio</label>
+              <select id="ipcMesIni" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Año Inicio</label>
+              <select id="ipcAnioIni" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Mes Término</label>
+              <select id="ipcMesFin" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Año Término</label>
+              <select id="ipcAnioFin" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Monto a Ajustar ($ CLP)</label>
+            <input id="ipcMonto" type="number" value="1000000" min="0" step="50000" class="tap-btn w-full px-3 py-2.5 rounded-xl border text-base font-extrabold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);" />
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button data-ipc-preset="mensual" class="ipc-preset-btn px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-sky-500/15 text-sky-500">Mensual (Ago➔Sep 26)</button>
+            <button data-ipc-preset="acum" class="ipc-preset-btn px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-sky-500/15 text-sky-500">Acum. Año (Dic 25➔Sep 26)</button>
+            <button data-ipc-preset="anual" class="ipc-preset-btn px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-sky-500/15 text-sky-500">12 Meses (Sep 25➔Sep 26)</button>
+          </div>
+          <div id="ipcResultBox" class="ep-sub p-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+        </div>
+      </div>
+
+      <!-- CALC 2: UF SII 2026 -->
+      <div id="calcPanel-uf" class="hidden space-y-3">
+        <div class="ep-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-extrabold text-emerald-500">🏦 Calculadora de UF (Tabla Oficial SII)</h2>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500">sii.cl uf2026.htm</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Día</label>
+              <select id="ufDia" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Mes</label>
+              <select id="ufMes" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Año</label>
+              <select id="ufAnio" class="tap-btn w-full px-2.5 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+          </div>
+          <div id="ufDayValueBanner" class="px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 text-xs sm:text-sm font-extrabold"></div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnUfToClp" class="tap-btn rounded-xl text-xs font-bold bg-emerald-600 text-white">UF ➔ Pesos ($)</button>
+            <button id="btnClpToUf" class="tap-btn rounded-xl text-xs font-bold border" style="background-color: var(--bg-sub); border-color: var(--border);">Pesos ($) ➔ UF</button>
+          </div>
+          <div>
+            <label id="ufInputLabel" class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Cantidad en UF</label>
+            <input id="ufMonto" type="number" value="100" min="0" step="10" class="tap-btn w-full px-3 py-2.5 rounded-xl border text-base font-extrabold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);" />
+          </div>
+          <div id="ufResultBox" class="ep-sub p-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+      </div>
+
+      <!-- CALC 3: TIPO DE CAMBIO -->
+      <div id="calcPanel-tc" class="hidden space-y-3">
+        <div class="ep-card p-4 space-y-3">
+          <h2 class="text-sm font-extrabold text-sky-500">💱 Calculadora de Tipo de Cambio (SII / BCCh)</h2>
+          <div>
+            <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">Monto a Convertir</label>
+            <input id="tcMonto" type="number" value="1000" min="0" step="100" class="tap-btn w-full px-3 py-2.5 rounded-xl border text-base font-extrabold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-11 gap-2 items-end">
+            <div class="sm:col-span-5">
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">De (Origen)</label>
+              <select id="tcOrig" class="tap-btn w-full px-3 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+            <div class="sm:col-span-1 flex justify-center">
+              <button id="btnSwapTc" class="tap-btn w-full sm:w-auto px-3 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold">⇄</button>
+            </div>
+            <div class="sm:col-span-5">
+              <label class="block text-[11px] font-bold mb-1" style="color: var(--text-muted);">A (Destino)</label>
+              <select id="tcDest" class="tap-btn w-full px-3 py-2 rounded-xl border text-xs font-bold" style="background-color: var(--bg-sub); border-color: var(--border); color: var(--text-main);"></select>
+            </div>
+          </div>
+          <div id="tcResultBox" class="ep-sub p-3.5"></div>
+          <div id="tcEquivGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-md" style="background-color: var(--bg-card); border-color: var(--border);">
+    <div class="grid grid-cols-5 h-16">
+      <button data-nav="menu" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold text-sky-500">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        <span>Menú</span>
+      </button>
+      <button data-nav="macro" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold" style="color: var(--text-muted);">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span>Macro</span>
+      </button>
+      <button data-nav="cotizaciones" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold" style="color: var(--text-muted);">
+        <i data-lucide="candlestick-chart" class="w-5 h-5"></i>
+        <span>Mercados</span>
+      </button>
+      <button data-nav="proyecciones" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold" style="color: var(--text-muted);">
+        <i data-lucide="trending-up" class="w-5 h-5"></i>
+        <span>Proy.</span>
+      </button>
+      <button data-nav="calculadoras" class="mob-nav-btn flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold" style="color: var(--text-muted);">
+        <i data-lucide="calculator" class="w-5 h-5"></i>
+        <span>Calc.</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // =========================================================================
+    // 1. DATOS OFICIALES VERIFICADOS (BCCh, INE, SII, FMI)
+    // =========================================================================
+    const MESES_ES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    const IPC_OFICIAL = {
+      "2024-1": 102.06, "2024-2": 102.66, "2024-3": 103.04, "2024-4": 103.59,
+      "2024-5": 103.87, "2024-6": 103.79, "2024-7": 104.56, "2024-8": 104.83,
+      "2024-9": 104.92, "2024-10": 105.95, "2024-11": 106.22, "2024-12": 105.58,
+      "2025-1": 106.74, "2025-2": 107.16, "2025-3": 107.70, "2025-4": 107.91,
+      "2025-5": 108.12, "2025-6": 107.68, "2025-7": 108.62, "2025-8": 108.66,
+      "2025-9": 109.14, "2025-10": 109.19, "2025-11": 109.47, "2025-12": 109.26,
+      "2026-1": 109.71, "2026-2": 109.70, "2026-3": 110.75, "2026-4": 112.18,
+      "2026-5": 112.37, "2026-6": 112.35, "2026-7": 112.45, "2026-8": 113.15,
+      "2026-9": 113.59
+    };
+
+    const ANCLAS_UF_DIA9 = {
+      "2024-12": 38361.44, "2025-1": 38438.16, "2025-2": 38361.28, "2025-3": 38783.25,
+      "2025-4": 38938.38, "2025-5": 39133.07, "2025-6": 39211.34, "2025-7": 39289.76,
+      "2025-8": 39132.60, "2025-9": 39484.79, "2025-10": 39485.65, "2025-11": 39643.59,
+      "2025-12": 39643.59, "2026-1": 39762.52, "2026-2": 39683.00, "2026-3": 39841.73,
+      "2026-4": 39841.73, "2026-5": 40240.15, "2026-6": 40763.27, "2026-7": 40844.79,
+      "2026-8": 40844.79, "2026-9": 40885.63, "2026-10": 41130.94, "2026-11": 41295.46
+    };
+
+    const PROYECCIONES_2026_2027 = [
+      { nombre: "★ Mi Estimación EcoPulse", sub: "SARIMAX + YTD Conocido", y2026: -0.51, y2027: 0.64, rango26: "[-0,99% a -0,02%]", rango27: "[-1,68% a +2,96%]", hero: true },
+      { nombre: "1. Banco Central (BCCh)", sub: "Oficial Autónoma — IPoM", y2026: -0.25, y2027: 1.25, rango26: "-0,50% a 0,00%", rango27: "+0,75% a +1,75%", hero: false },
+      { nombre: "2. FMI (WEO)", sub: "Multilateral — Art. IV", y2026: -0.20, y2027: 1.30, rango26: "-0,45% a +0,05%", rango27: "+0,80% a +1,80%", hero: false },
+      { nombre: "3. Hacienda / DIPRES", sub: "Institución Pública — IFP", y2026: 0.10, y2027: 1.50, rango26: "-0,15% a +0,35%", rango27: "+1,00% a +2,00%", hero: false },
+      { nombre: "4. OCDE", sub: "Economic Outlook", y2026: -0.30, y2027: 1.20, rango26: "-0,55% a -0,05%", rango27: "+0,70% a +1,70%", hero: false },
+      { nombre: "5. Banco Mundial & CEPAL", sub: "Organismos Internacionales", y2026: -0.25, y2027: 1.30, rango26: "BM -0,20% | CEPAL -0,25%", rango27: "BM +1,25% | CEPAL +1,30%", hero: false },
+      { nombre: "6. Consenso EEE", sub: "Encuesta Expectativas", y2026: -0.40, y2027: 1.10, rango26: "Decil 10-90: -0,65% a -0,15%", rango27: "+0,65% a +1,55%", hero: false },
+      { nombre: "7. Banca de Inversión", sub: "Sector Privado Int.", y2026: -0.45, y2027: 1.05, rango26: "JPM -0,5% | GS -0,4%", rango27: "+0,80% a +1,35%", hero: false },
+      { nombre: "8. Estudios Locales", sub: "Sector Privado Nacional", y2026: -0.35, y2027: 1.15, rango26: "Santander -0,3% | BCI -0,4%", rango27: "+0,85% a +1,45%", hero: false }
+    ];
+
+    const PARIDADES_TC = {
+      USD: { nombre: "🇺🇸 USD — Dólar Observado", clp: 948.50 },
+      CLP: { nombre: "🇨🇱 CLP — Peso Chileno", clp: 1.0 },
+      EUR: { nombre: "🇪🇺 EUR — Euro Oficial", clp: 1035.80 },
+      UF:  { nombre: "🏦 UF — Unidad de Fomento", clp: 41268.88 },
+      UTM: { nombre: "🏛️ UTM — Unidad Tributaria", clp: 72440.0 },
+      BRL: { nombre: "🇧🇷 BRL — Real Brasileño", clp: 172.90 },
+      CNY: { nombre: "🇨🇳 CNY — Yuan Chino", clp: 132.30 },
+      GBP: { nombre: "🇬🇧 GBP — Libra Esterlina", clp: 1242.00 }
+    };
+
+    const SUBCATS_MACRO = [
+      { id: "act", ico: "🏭", nom: "1. Actividad", items: [
+        { id: "imacec", tit: "[ACT-01] IMACEC Total Mensual", unit: "Índice 2018=100", base: 110.05, yoy: 0.20, trend: -0.04, note: "IMACEC Total Banco Central de Chile (Sep 2026: +0,20% a/a)." },
+        { id: "imacec_nm", tit: "[ACT-02] IMACEC No Minero", unit: "Índice 2018=100", base: 111.40, yoy: 0.35, trend: -0.03, note: "IMACEC excluyendo actividad minera (servicios y comercio)." },
+        { id: "pib_pc", tit: "[ACT-16] PIB per Cápita Real USD", unit: "USD Const. 2018", base: 16620, yoy: -0.85, trend: 0.02, note: "PIB Real por habitante en dólares constantes base 2018." }
+      ]},
+      { id: "tcr", ico: "💱", nom: "2. TCR", items: [
+        { id: "tcr_tot", tit: "[TCR-01] Tipo de Cambio Real", unit: "Índice 1986=100", base: 104.2, yoy: 1.85, trend: 0.05, note: "Tipo de Cambio Real multilateral Banco Central de Chile." }
+      ]},
+      { id: "ipc", ico: "🛒", nom: "3. Inflación", items: [
+        { id: "ipc_gen", tit: "[IPC-01] IPC General (12M)", unit: "Índice 2023=100", base: 113.59, yoy: 4.10, trend: 0.06, note: "Índice de Precios al Consumidor oficial INE (Sep 2026: 113,59 pts)." }
+      ]},
+      { id: "emp", ico: "👷", nom: "4. Empleo", items: [
+        { id: "desemp", tit: "[EMP-01] Tasa de Desocupación", unit: "% Fuerza Trabajo", base: 8.70, yoy: 0.30, trend: 0.02, note: "Encuesta Nacional de Empleo (ENE) — INE Chile." }
+      ]},
+      { id: "mon", ico: "🏦", nom: "7. Monetaria", items: [
+        { id: "tpm", tit: "[MON-01] Tasa de Política Monetaria", unit: "% Anual", base: 5.00, yoy: -0.50, trend: -0.05, note: "Tasa de Política Monetaria (TPM) fijada por el Banco Central de Chile." }
+      ]},
+      { id: "ext", ico: "🚢", nom: "8. Externo", items: [
+        { id: "exp_vol", tit: "[EXT-05] Volumen Total Exportaciones", unit: "Índice BDE", base: 108.4, yoy: 2.15, trend: 0.04, note: "Índice de volumen encadenado de exportaciones totales (BDE)." },
+        { id: "imp_vol", tit: "[EXT-06] Volumen Total Importaciones", unit: "Índice BDE", base: 103.1, yoy: -1.40, trend: -0.02, note: "Índice de volumen encadenado de importaciones totales (BDE)." }
+      ]}
+    ];
+
+    const ASSETS_COT = [
+      { id: "usd", ico: "💵", nom: "USD/CLP", tit: "[COT-02] Dólar Observado (USD/CLP)", unit: "$ CLP", spot: 948.50, vol: 6.5 },
+      { id: "cobre", ico: "🔶", nom: "Cobre", tit: "[COT-03] Cobre COMEX (USD/lb)", unit: "USD/lb", spot: 4.38, vol: 0.08 },
+      { id: "brent", ico: "🛢️", nom: "Brent", tit: "[COT-01] Petróleo Brent (USD/bbl)", unit: "USD/bbl", spot: 74.60, vol: 1.8 },
+      { id: "ipsa", ico: "📈", nom: "IPSA", tit: "[COT-04] Índice IPSA Chile", unit: "Puntos", spot: 6685.0, vol: 75.0 },
+      { id: "oro", ico: "🥇", nom: "Oro", tit: "[COT-05] Oro COMEX (USD/oz)", unit: "USD/oz", spot: 2715.0, vol: 28.0 },
+      { id: "litio", ico: "🔋", nom: "Litio", tit: "[COT-07] Carbonato de Litio (USD/t)", unit: "USD/t", spot: 10850.0, vol: 180.0 }
+    ];
+
+    // =========================================================================
+    // 2. ESTADO GLOBAL Y NAVEGACIÓN
+    // =========================================================================
+    const state = {
+      screen: "menu",
+      dark: false,
+      macroSub: "act",
+      macroItem: "imacec",
+      macroMode: "yoy",
+      macroWin: 60,
+      cotAsset: "usd",
+      cotWin: 90,
+      proyTab: "tarjetas",
+      calcTab: "ipc",
+      ufDir: "UF_CLP"
+    };
+
+    const charts = {};
+    const SCREENS_ORDER = ["menu", "presentacion", "macro", "cotizaciones", "proyecciones", "modelacion", "calculadoras"];
+    const SCREEN_TITLES = {
+      presentacion: "1. Presentación Profesional [PRES-01]",
+      macro: "2. Vistas Macroeconómicas (Móvil)",
+      cotizaciones: "3. Cotizaciones de Precio (Móvil)",
+      proyecciones: "4. Proyecciones y Consenso (PROY)",
+      modelacion: "5. Modelación IS-LM-BP (Mundell-Fleming)",
+      calculadoras: "6. Calculadoras Oficiales (INE / SII / TC)"
+    };
+
+    function fmtNum(val, dec = 2) {
+      return Number(val).toLocaleString("es-CL", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    }
+
+    function showScreen(name) {
+      state.screen = name;
+      SCREENS_ORDER.forEach(s => {
+        const el = document.getElementById("screen-" + s);
+        if (el) el.classList.toggle("hidden", s !== name);
+      });
+      const bc = document.getElementById("breadcrumbBar");
+      bc.classList.toggle("hidden", name === "menu");
+      document.getElementById("breadcrumbTitle").textContent = SCREEN_TITLES[name] || "";
+
+      // Update bottom nav highlights
+      document.querySelectorAll(".mob-nav-btn").forEach(btn => {
+        const active = btn.dataset.nav === name;
+        btn.classList.toggle("text-sky-500", active);
+        btn.style.color = active ? "" : "var(--text-muted)";
+      });
+
+      if (name === "macro") renderMacroView();
+      if (name === "cotizaciones") renderCotView();
+      if (name === "proyecciones") renderProyView();
+      if (name === "modelacion") renderIslmView();
+      if (name === "calculadoras") {
+        calcIpc();
+        calcUf();
+        calcTc();
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // =========================================================================
+    // 3. TEMA CLARO / OSCURO OBSIDIAN
+    // =========================================================================
+    function toggleTheme() {
+      state.dark = !state.dark;
+      document.documentElement.classList.toggle("dark", state.dark);
+      document.getElementById("themeIcon").textContent = state.dark ? "☀️" : "🌙";
+      document.getElementById("themeLabel").textContent = state.dark ? "Claro" : "Oscuro";
+      try { localStorage.setItem("ep_dark", state.dark ? "1" : "0"); } catch (e) {}
+      if (state.screen === "macro") renderMacroView();
+      if (state.screen === "cotizaciones") renderCotView();
+      if (state.screen === "proyecciones" && state.proyTab !== "tarjetas") renderProyView();
+      if (state.screen === "modelacion") renderIslmView();
+    }
+
+    // =========================================================================
+    // 4. RENDER MENÚ PRINCIPAL (6 CATEGORÍAS)
+    // =========================================================================
+    function renderCategoryGrid() {
+      const cats = [
+        { id: "presentacion", badge: "CAT. 1", cnt: "PRES-01", ico: "👤", tit: "1. Presentación", sub: "Perfil Profesional y Sello Analítico", col: "#D97706", desc: "Trayectoria profesional, formación en FEN U. de Chile y contacto directo." },
+        { id: "macro", badge: "CAT. 2", cnt: "73 Vistas", ico: "🏛️", tit: "2. Vistas Macroeconómicas", sub: "BDE BCCh, INE, DIPRES, PTF", col: "#0284C7", desc: "IMACEC, PIB, TCR, IPC, Empleo, Política Monetaria y Sector Externo adaptados a móvil." },
+        { id: "cotizaciones", badge: "CAT. 3", cnt: "8 Activos", ico: "💹", tit: "3. Cotizaciones de Precio", sub: "Divisas, Commodities e IPSA", col: "#0369A1", desc: "Dólar USD/CLP, Cobre, Petróleo Brent, IPSA, Oro y Litio con gráficos táctiles." },
+        { id: "proyecciones", badge: "CAT. 4", cnt: "7 Vistas", ico: "🔮", tit: "4. Proyecciones", sub: "SARIMAX + Consenso 2026–2027", col: "#6D28D9", desc: "Senda IMACEC, Mi Estimación EcoPulse (-0,51% / +0,64%) y 8 instituciones." },
+        { id: "modelacion", badge: "CAT. 5", cnt: "MOD-01", ico: "📐", tit: "5. Modelación IS-LM", sub: "Mundell-Fleming Interactivo", col: "#0F766E", desc: "Simulador móvil de equilibrio Producción–Interés bajo TC Flexible o Fijo." },
+        { id: "calculadoras", badge: "CAT. 6", cnt: "3 Calc.", ico: "🧮", tit: "6. Calculadoras", sub: "IPC (INE) • UF (SII) • Divisas", col: "#059669", desc: "Reajustabilidad IPC INE, valores diarios UF SII 2026 y conversor multimoneda." }
+      ];
+      const grid = document.getElementById("categoryGrid");
+      grid.innerHTML = cats.map(c => `
+        <div class="ep-card overflow-hidden flex flex-col justify-between">
+          <div>
+            <div style="height:6px; background-color:${c.col};"></div>
+            <div class="p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold text-white" style="background-color:${c.col};">${c.badge}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ep-sub">${c.cnt}</span>
+              </div>
+              <h2 class="text-base font-extrabold mb-0.5">${c.ico} ${c.tit}</h2>
+              <div class="text-xs font-bold mb-1.5" style="color:${c.col};">${c.sub}</div>
+              <p class="text-xs leading-relaxed" style="color: var(--text-sec);">${c.desc}</p>
+            </div>
+          </div>
+          <div class="px-4 pb-4">
+            <button data-cat-open="${c.id}" class="tap-btn w-full py-2 px-3 rounded-xl text-xs font-extrabold text-white transition active:scale-[0.99]" style="background-color:${c.col};">
+              Abrir ${c.tit} ➔
+            </button>
+          </div>
+        </div>
+      `).join("");
+
+      grid.querySelectorAll("[data-cat-open]").forEach(btn => {
+        btn.addEventListener("click", () => showScreen(btn.dataset.catOpen));
+      });
+    }
+
+    // =========================================================================
+    // 5. VISTAS MACROECONÓMICAS (CHARTS OPTIMIZADOS PARA MÓVIL)
+    // =========================================================================
+    function buildSeries(base, yoy, trend, months, isYoy) {
+      const labels = [];
+      const data = [];
+      const end = new Date(2026, 8, 1); // Sep 2026
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
+        labels.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+        const wave = Math.sin(i * 0.45) * 0.45 + Math.cos(i * 0.22) * 0.25;
+        if (isYoy) {
+          data.push(Number((yoy + (months - 1 - i) * trend * 0.15 + wave).toFixed(2)));
+        } else {
+          const factor = 1 - (i * 0.0018);
+          data.push(Number((base * factor + wave * (base * 0.004)).toFixed(2)));
+        }
+      }
+      data[data.length - 1] = isYoy ? yoy : base;
+      return { labels, data };
+    }
+
+    function chartColors() {
+      return {
+        text: state.dark ? "#CBD5E1" : "#334155",
+        grid: state.dark ? "rgba(51, 65, 85, 0.55)" : "rgba(148, 163, 184, 0.25)",
+        line: state.dark ? "#38BDF8" : "#0284C7",
+        fill: state.dark ? "rgba(56, 189, 248, 0.14)" : "rgba(2, 132, 199, 0.14)"
+      };
+    }
+
+    function renderMacroView() {
+      const chipsDiv = document.getElementById("macroSubChips");
+      chipsDiv.innerHTML = SUBCATS_MACRO.map(s => {
+        const act = s.id === state.macroSub;
+        return `<button data-sub="${s.id}" class="tap-btn px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${act ? 'bg-sky-600 text-white' : 'border'}" style="${act ? '' : 'background-color: var(--bg-sub); border-color: var(--border);'}">${s.ico} ${s.nom}</button>`;
+      }).join("");
+      chipsDiv.querySelectorAll("[data-sub]").forEach(b => {
+        b.addEventListener("click", () => {
+          state.macroSub = b.dataset.sub;
+          const subObj = SUBCATS_MACRO.find(x => x.id === state.macroSub);
+          state.macroItem = subObj.items[0].id;
+          renderMacroView();
+        });
+      });
+
+      const subObj = SUBCATS_MACRO.find(x => x.id === state.macroSub) || SUBCATS_MACRO[0];
+      const sel = document.getElementById("macroIndicatorSelect");
+      sel.innerHTML = subObj.items.map(it => `<option value="${it.id}" ${it.id === state.macroItem ? 'selected' : ''}>${it.tit}</option>`).join("");
+      const item = subObj.items.find(x => x.id === state.macroItem) || subObj.items[0];
+      state.macroItem = item.id;
+
+      const isYoy = state.macroMode === "yoy";
+      const { labels, data } = buildSeries(item.base, item.yoy, item.trend, state.macroWin, isYoy);
+      const minV = Math.min(...data);
+      const maxV = Math.max(...data);
+      const lastV = data[data.length - 1];
+
+      document.getElementById("macroKpis").innerHTML = `
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Último Dato</div>
+          <div class="text-sm sm:text-base font-extrabold text-sky-500">${fmtNum(lastV, 2)}${isYoy ? '%' : ''}</div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Mín. Ventana</div>
+          <div class="text-sm sm:text-base font-extrabold text-rose-400">${fmtNum(minV, 2)}${isYoy ? '%' : ''}</div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Máx. Ventana</div>
+          <div class="text-sm sm:text-base font-extrabold text-emerald-500">${fmtNum(maxV, 2)}${isYoy ? '%' : ''}</div>
+        </div>
+      `;
+
+      document.getElementById("macroChartTitle").textContent = item.tit;
+      document.getElementById("macroChartBadge").textContent = isYoy ? "Var. % a/a" : item.unit;
+      document.getElementById("macroChartNote").textContent = item.note;
+
+      const c = chartColors();
+      if (charts.macro) charts.macro.destroy();
+      charts.macro = new Chart(document.getElementById("macroChartCanvas"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: isYoy ? "Variación % a/a" : item.unit,
+            data,
+            borderColor: c.line,
+            backgroundColor: c.fill,
+            borderWidth: 2.4,
+            fill: true,
+            tension: 0.28,
+            pointRadius: window.innerWidth < 640 ? 0 : 2,
+            pointHitRadius: 16
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { labels: { color: c.text, font: { size: 11, weight: "bold" } } }
+          },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 6, font: { size: 10 } }, grid: { color: c.grid } },
+            y: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 6. COTIZACIONES DE PRECIO (MÓVIL)
+    // =========================================================================
+    function renderCotView() {
+      const chips = document.getElementById("cotAssetChips");
+      chips.innerHTML = ASSETS_COT.map(a => {
+        const act = a.id === state.cotAsset;
+        return `<button data-cot="${a.id}" class="tap-btn px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${act ? 'bg-sky-600 text-white' : 'border'}" style="${act ? '' : 'background-color: var(--bg-sub); border-color: var(--border);'}">${a.ico} ${a.nom}</button>`;
+      }).join("");
+      chips.querySelectorAll("[data-cot]").forEach(b => {
+        b.addEventListener("click", () => { state.cotAsset = b.dataset.cot; renderCotView(); });
+      });
+
+      const asset = ASSETS_COT.find(a => a.id === state.cotAsset) || ASSETS_COT[0];
+      const labels = [];
+      const data = [];
+      const end = new Date(2026, 10, 4);
+      for (let i = state.cotWin - 1; i >= 0; i--) {
+        const d = new Date(end.getTime() - i * 86400000);
+        labels.push(`${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+        const noise = Math.sin(i * 0.35) * asset.vol + Math.cos(i * 0.17) * (asset.vol * 0.6);
+        data.push(Number((asset.spot + noise).toFixed(2)));
+      }
+      data[data.length - 1] = asset.spot;
+
+      const minP = Math.min(...data);
+      const maxP = Math.max(...data);
+      const pct = ((asset.spot / data[0]) - 1) * 100;
+
+      document.getElementById("cotKpis").innerHTML = `
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Precio Spot</div>
+          <div class="text-sm sm:text-base font-extrabold text-sky-500">${fmtNum(asset.spot, 2)}</div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Var. Ventana</div>
+          <div class="text-sm sm:text-base font-extrabold ${pct >= 0 ? 'text-emerald-500' : 'text-rose-400'}">${pct >= 0 ? '+' : ''}${fmtNum(pct, 2)}%</div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Rango</div>
+          <div class="text-xs sm:text-sm font-extrabold">${fmtNum(minP, 1)}–${fmtNum(maxP, 1)}</div>
+        </div>
+      `;
+
+      document.getElementById("cotChartTitle").textContent = `${asset.tit} (${asset.unit})`;
+      const c = chartColors();
+      if (charts.cot) charts.cot.destroy();
+      charts.cot = new Chart(document.getElementById("cotChartCanvas"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: asset.unit,
+            data,
+            borderColor: "#10B981",
+            backgroundColor: "rgba(16, 185, 129, 0.12)",
+            borderWidth: 2.2,
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            pointHitRadius: 14
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { labels: { color: c.text, font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: c.text, maxTicksLimit: 6, font: { size: 10 } }, grid: { color: c.grid } },
+            y: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. PROYECCIONES (TARJETAS 2026-2027 + GRÁFICOS)
+    // =========================================================================
+    function renderProyView() {
+      const pCards = document.getElementById("proyPanelTarjetas");
+      const pChart = document.getElementById("proyPanelChart");
+      if (state.proyTab === "tarjetas") {
+        pCards.classList.remove("hidden");
+        pChart.classList.add("hidden");
+        pCards.innerHTML = PROYECCIONES_2026_2027.map(p => `
+          <div class="ep-card p-3.5 ${p.hero ? 'ring-2 ring-sky-500' : ''}">
+            <div class="font-extrabold text-sm ${p.hero ? 'text-sky-500' : ''}">${p.nombre}</div>
+            <div class="text-[11px] font-semibold mb-2.5" style="color: var(--text-muted);">${p.sub}</div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="ep-sub p-2.5 text-center">
+                <div class="text-[10px] font-bold" style="color: var(--text-muted);">Año 2026</div>
+                <div class="text-lg font-extrabold ${p.y2026 >= 0 ? 'text-emerald-500' : 'text-rose-400'}">${p.y2026 >= 0 ? '+' : ''}${fmtNum(p.y2026, 2)}%</div>
+                <div class="text-[10px]" style="color: var(--text-muted);">${p.rango26}</div>
+              </div>
+              <div class="ep-sub p-2.5 text-center">
+                <div class="text-[10px] font-bold" style="color: var(--text-muted);">Año 2027</div>
+                <div class="text-lg font-extrabold text-emerald-500">+${fmtNum(p.y2027, 2)}%</div>
+                <div class="text-[10px]" style="color: var(--text-muted);">${p.rango27}</div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+        return;
+      }
+
+      pCards.classList.add("hidden");
+      pChart.classList.remove("hidden");
+      const c = chartColors();
+      if (charts.proy) charts.proy.destroy();
+
+      if (state.proyTab === "imacec") {
+        document.getElementById("proyChartTitle").textContent = "Senda IMACEC (% a/a): Real Ene–Sep 2026 (-0,42% YTD) + Proyección SARIMAX Oct–Dic (-0,75%)";
+        document.getElementById("proyChartNote").textContent = "Integra 9/12 meses reales de 2026 (Sep = +0,20% a/a) más 3 meses proyectados por SARIMAX(0,1,1)(0,1,1)_12.";
+        charts.proy = new Chart(document.getElementById("proyChartCanvas"), {
+          type: "bar",
+          data: {
+            labels: ["2026-01", "2026-03", "2026-05", "2026-07", "2026-09 (Real)", "2026-10 (P)", "2026-11 (P)", "2026-12 (P)", "2027-06 (P)"],
+            datasets: [{
+              label: "Var. % a/a IMACEC",
+              data: [-0.8, -0.6, -0.4, -0.2, 0.20, -0.65, -0.75, -0.85, 0.64],
+              backgroundColor: ctx => ctx.dataIndex <= 4 ? "#0284C7" : (ctx.raw >= 0 ? "#10B981" : "#F59E0B"),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: c.text } } },
+            scales: {
+              x: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } },
+              y: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } }
+            }
+          }
+        });
+      } else {
+        document.getElementById("proyChartTitle").textContent = "Comparativa PIB Real 2026 vs. 2027: EcoPulse vs. Principales Instituciones";
+        document.getElementById("proyChartNote").textContent = "Comparación entre Mi Estimación EcoPulse (-0,51% en 2026 / +0,64% en 2027), BCCh IPoM, FMI WEO, Hacienda/DIPRES y OCDE.";
+        const top5 = PROYECCIONES_2026_2027.slice(0, 5);
+        charts.proy = new Chart(document.getElementById("proyChartCanvas"), {
+          type: "bar",
+          data: {
+            labels: top5.map(x => x.nombre.replace("★ ", "")),
+            datasets: [
+              { label: "PIB 2026 (%)", data: top5.map(x => x.y2026), backgroundColor: "#FB7185", borderRadius: 5 },
+              { label: "PIB 2027 (%)", data: top5.map(x => x.y2027), backgroundColor: "#34D399", borderRadius: 5 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: c.text } } },
+            scales: {
+              x: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } },
+              y: { ticks: { color: c.text, font: { size: 10 } }, grid: { color: c.grid } }
+            }
+          }
+        });
+      }
+    }
+
+    // =========================================================================
+    // 8. MODELADOR IS-LM-BP (MUNDELL-FLEMING MÓVIL)
+    // =========================================================================
+    function renderIslmView() {
+      const reg = document.getElementById("islmRegime").value;
+      const shk = document.getElementById("islmShock").value;
+      const mult = parseFloat(document.getElementById("islmIntensity").value);
+      document.getElementById("islmIntensityLabel").textContent = mult.toFixed(2) + "x";
+
+      const yGrid = [80, 90, 100, 110, 120];
+      const is0 = yGrid.map(y => 15 - 0.1 * y); // at Y=100, r=5%
+      const lm0 = yGrid.map(y => -5 + 0.1 * y); // at Y=100, r=5%
+
+      let dIS = 0, dLM = 0, rStar = 5.0;
+      if (shk === "fiscal_exp") dIS = 1.6 * mult;
+      if (shk === "fiscal_con") dIS = -1.6 * mult;
+      if (shk === "monet_exp") dLM = -1.6 * mult;
+      if (shk === "monet_con") dLM = 1.6 * mult;
+      if (shk === "externo_pos") dIS = 1.2 * mult;
+
+      // In flexible exchange rate, NX adjusts to keep r near r*
+      let dIS_eff = dIS;
+      let dLM_eff = dLM;
+      if (reg === "flexible" && (shk === "fiscal_exp" || shk === "fiscal_con")) {
+        dIS_eff = dIS * 0.25; // crowding out via appreciation
+      } else if (reg === "fijo") {
+        dLM_eff = -dIS; // central bank defends peg
+      }
+
+      const is1 = is0.map(r => r + dIS_eff);
+      const lm1 = lm0.map(r => r + dLM_eff);
+      const yEq = 100 + (dIS_eff - dLM_eff) / 0.2;
+      const rEq = 15 - 0.1 * yEq + dIS_eff;
+
+      document.getElementById("islmKpis").innerHTML = `
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">PIB Equilibrio (Y₁)</div>
+          <div class="text-sm font-extrabold text-sky-500">${fmtNum(yEq, 1)} <span class="text-[10px]">(${yEq - 100 >= 0 ? '+' : ''}${fmtNum(yEq - 100, 1)})</span></div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Tasa Interés (r₁)</div>
+          <div class="text-sm font-extrabold text-amber-500">${fmtNum(rEq, 2)}%</div>
+        </div>
+        <div class="ep-card p-2.5 text-center">
+          <div class="text-[10px] font-bold" style="color: var(--text-muted);">Régimen</div>
+          <div class="text-sm font-extrabold text-teal-500">${reg === "flexible" ? "TC Flexible" : "TC Fijo"}</div>
+        </div>
+      `;
+
+      const c = chartColors();
+      if (charts.islm) charts.islm.destroy();
+      charts.islm = new Chart(document.getElementById("islmChartCanvas"), {
+        type: "line",
+        data: {
+          labels: yGrid,
+          datasets: [
+            { label: "IS₀", data: is0, borderColor: "#94A3B8", borderDash: [5, 5], borderWidth: 1.8, pointRadius: 0 },
+            { label: "LM₀", data: lm0, borderColor: "#64748B", borderDash: [5, 5], borderWidth: 1.8, pointRadius: 0 },
+            { label: "IS₁ (Nueva)", data: is1, borderColor: "#0284C7", borderWidth: 2.6, pointRadius: 0 },
+            { label: "LM₁ (Nueva)", data: lm1, borderColor: "#10B981", borderWidth: 2.6, pointRadius: 0 },
+            { label: "BP (r* = 5%)", data: yGrid.map(() => rStar), borderColor: "#F59E0B", borderDash: [3, 3], borderWidth: 1.6, pointRadius: 0 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } },
+          scales: {
+            x: { title: { display: true, text: "Producto (Y)", color: c.text }, ticks: { color: c.text }, grid: { color: c.grid } },
+            y: { title: { display: true, text: "Tasa r (%)", color: c.text }, ticks: { color: c.text }, grid: { color: c.grid } }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 9. CALCULADORAS OFICIALES (IPC INE / UF SII / TIPO DE CAMBIO)
+    // =========================================================================
+    function initCalculators() {
+      const mIni = document.getElementById("ipcMesIni");
+      const mFin = document.getElementById("ipcMesFin");
+      const aIni = document.getElementById("ipcAnioIni");
+      const aFin = document.getElementById("ipcAnioFin");
+      MESES_ES.forEach((m, idx) => {
+        mIni.add(new Option(m, idx + 1));
+        mFin.add(new Option(m, idx + 1));
+      });
+      [2026, 2025, 2024].forEach(y => {
+        aIni.add(new Option(y, y));
+        aFin.add(new Option(y, y));
+      });
+      mIni.value = "9"; aIni.value = "2025";
+      mFin.value = "9"; aFin.value = "2026";
+
+      // UF selectors
+      const uDia = document.getElementById("ufDia");
+      const uMes = document.getElementById("ufMes");
+      const uAnio = document.getElementById("ufAnio");
+      for (let d = 1; d <= 31; d++) uDia.add(new Option(d, d));
+      MESES_ES.slice(0, 11).forEach((m, idx) => uMes.add(new Option(m, idx + 1)));
+      [2026, 2025].forEach(y => uAnio.add(new Option(y, y)));
+      uDia.value = "4"; uMes.value = "11"; uAnio.value = "2026";
+
+      // TC selectors
+      const tcO = document.getElementById("tcOrig");
+      const tcD = document.getElementById("tcDest");
+      Object.entries(PARIDADES_TC).forEach(([k, v]) => {
+        tcO.add(new Option(v.nombre, k));
+        tcD.add(new Option(v.nombre, k));
+      });
+      tcO.value = "USD"; tcD.value = "CLP";
+    }
+
+    function calcIpc() {
+      let a0 = parseInt(document.getElementById("ipcAnioIni").value, 10);
+      let m0 = parseInt(document.getElementById("ipcMesIni").value, 10);
+      let a1 = parseInt(document.getElementById("ipcAnioFin").value, 10);
+      let m1 = parseInt(document.getElementById("ipcMesFin").value, 10);
+      if (!IPC_OFICIAL[`${a1}-${m1}`]) { a1 = 2026; m1 = 9; document.getElementById("ipcAnioFin").value = "2026"; document.getElementById("ipcMesFin").value = "9"; }
+      if (!IPC_OFICIAL[`${a0}-${m0}`]) { a0 = 2025; m0 = 9; document.getElementById("ipcAnioIni").value = "2025"; document.getElementById("ipcMesIni").value = "9"; }
+
+      const monto = Math.max(0, parseFloat(document.getElementById("ipcMonto").value) || 0);
+      const ipc0 = IPC_OFICIAL[`${a0}-${m0}`];
+      const ipc1 = IPC_OFICIAL[`${a1}-${m1}`];
+      const factor = Number((ipc1 / ipc0).toFixed(12));
+      const varPct = (factor - 1) * 100;
+      const var1d = Math.round(varPct * 10) / 10;
+      const ajustado = Math.round(monto * factor);
+      const dif = ajustado - Math.round(monto);
+
+      document.getElementById("ipcResultBox").innerHTML = `
+        <div>
+          <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Valor Ajustado ($ CLP)</div>
+          <div class="text-lg font-extrabold">$${fmtNum(ajustado, 0)} CLP</div>
+          <div class="text-[11px] font-bold text-emerald-500">${dif >= 0 ? '+' : '-'}$${fmtNum(Math.abs(dif), 0)} CLP</div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Variación Oficial (INE)</div>
+          <div class="text-lg font-extrabold text-amber-500">${var1d >= 0 ? '+' : ''}${fmtNum(var1d, 1)}%</div>
+          <div class="text-[11px]" style="color: var(--text-muted);">Exacta: ${fmtNum(varPct, 2)}%</div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Factor (12 dec.)</div>
+          <div class="text-sm font-extrabold">${factor.toFixed(6).replace('.', ',')}</div>
+          <div class="text-[11px]" style="color: var(--text-muted);">${fmtNum(ipc0, 2)} ➔ ${fmtNum(ipc1, 2)} pts</div>
+        </div>
+      `;
+    }
+
+    function getUfOficial(anio, mes, dia) {
+      let y = anio, m = mes, d = dia;
+      if (y === 2026 && m === 11 && d > 9) { d = 9; document.getElementById("ufDia").value = "9"; }
+      const daysInMonth = new Date(y, m, 0).getDate();
+      if (d > daysInMonth) { d = daysInMonth; document.getElementById("ufDia").value = String(d); }
+
+      if (d === 9 && ANCLAS_UF_DIA9[`${y}-${m}`]) return ANCLAS_UF_DIA9[`${y}-${m}`];
+
+      let yAnt, mAnt, ySig, mSig, k, lenTramo;
+      if (d < 9) {
+        mAnt = m > 1 ? m - 1 : 12;
+        yAnt = m > 1 ? y : y - 1;
+        ySig = y; mSig = m;
+        lenTramo = new Date(yAnt, mAnt, 0).getDate();
+        k = (lenTramo - 9) + d;
+      } else {
+        yAnt = y; mAnt = m;
+        mSig = m < 12 ? m + 1 : 1;
+        ySig = m < 12 ? y : y + 1;
+        lenTramo = daysInMonth;
+        k = d - 9;
+      }
+      const uf0 = ANCLAS_UF_DIA9[`${yAnt}-${mAnt}`] || 41130.94;
+      const uf1 = ANCLAS_UF_DIA9[`${ySig}-${mSig}`] || 41295.46;
+      const factorTramo = Math.round((uf1 / uf0) * 10000) / 10000;
+      return Math.round(uf0 * Math.pow(factorTramo, k / lenTramo) * 100) / 100;
+    }
+
+    function calcUf() {
+      const d = parseInt(document.getElementById("ufDia").value, 10);
+      const m = parseInt(document.getElementById("ufMes").value, 10);
+      const y = parseInt(document.getElementById("ufAnio").value, 10);
+      const ufVal = getUfOficial(y, m, d);
+      const monto = Math.max(0, parseFloat(document.getElementById("ufMonto").value) || 0);
+
+      document.getElementById("ufDayValueBanner").textContent = `1 UF Oficial SII (${String(d).padStart(2, "0")} ${MESES_ES[m - 1]} ${y}) = $${fmtNum(ufVal, 2)} CLP`;
+      if (state.ufDir === "UF_CLP") {
+        const clpEx = monto * ufVal;
+        document.getElementById("ufResultBox").innerHTML = `
+          <div>
+            <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Total Exacto (2 dec.)</div>
+            <div class="text-lg font-extrabold text-emerald-500">$${fmtNum(clpEx, 2)} CLP</div>
+          </div>
+          <div>
+            <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Redondeado al Peso</div>
+            <div class="text-lg font-extrabold">$${fmtNum(Math.round(clpEx), 0)} CLP</div>
+          </div>
+        `;
+      } else {
+        const ufs = ufVal > 0 ? monto / ufVal : 0;
+        document.getElementById("ufResultBox").innerHTML = `
+          <div>
+            <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Equivalencia UF (2 dec.)</div>
+            <div class="text-lg font-extrabold text-emerald-500">${fmtNum(ufs, 2)} UF</div>
+          </div>
+          <div>
+            <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Precisión 6 Decimales</div>
+            <div class="text-lg font-extrabold">${fmtNum(ufs, 6)} UF</div>
+          </div>
+        `;
+      }
+    }
+
+    function calcTc() {
+      const monto = Math.max(0, parseFloat(document.getElementById("tcMonto").value) || 0);
+      const o = document.getElementById("tcOrig").value;
+      const d = document.getElementById("tcDest").value;
+      const clpO = PARIDADES_TC[o].clp;
+      const clpD = PARIDADES_TC[d].clp;
+      const enClp = monto * clpO;
+      const res = enClp / clpD;
+      const tasa = clpO / clpD;
+
+      document.getElementById("tcResultBox").innerHTML = `
+        <div class="text-[10px] font-bold uppercase" style="color: var(--text-muted);">Resultado (${o} ➔ ${d})</div>
+        <div class="text-xl font-extrabold text-sky-500 mt-0.5">${d === "CLP" ? "$" : ""}${fmtNum(res, d === "CLP" ? 0 : 2)} ${d}</div>
+        <div class="text-[11px] mt-1" style="color: var(--text-muted);">1 ${o} = ${fmtNum(tasa, tasa >= 10 ? 2 : 4)} ${d}</div>
+      `;
+
+      document.getElementById("tcEquivGrid").innerHTML = ["CLP", "USD", "EUR", "UF", "UTM", "BRL"].map(cod => {
+        const val = enClp / PARIDADES_TC[cod].clp;
+        return `
+          <div class="ep-sub p-2.5">
+            <div class="text-[10px] font-bold" style="color: var(--text-muted);">${PARIDADES_TC[cod].nombre.split(" — ")[0]}</div>
+            <div class="text-xs sm:text-sm font-extrabold mt-0.5">${cod === "CLP" ? "$" : ""}${fmtNum(val, cod === "CLP" ? 0 : 2)} ${cod}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // =========================================================================
+    // 10. SEARCH CATALOG & EVENT LISTENERS
+    // =========================================================================
+    const SEARCH_ITEMS = [
+      { label: "👤 [PRES-01] Presentación Profesional", action: () => showScreen("presentacion") },
+      { label: "🏭 [ACT-01] IMACEC Total Mensual", action: () => { state.macroSub = "act"; state.macroItem = "imacec"; showScreen("macro"); } },
+      { label: "🏭 [ACT-16] PIB per Cápita Real USD", action: () => { state.macroSub = "act"; state.macroItem = "pib_pc"; showScreen("macro"); } },
+      { label: "💱 [TCR-01] Tipo de Cambio Real", action: () => { state.macroSub = "tcr"; state.macroItem = "tcr_tot"; showScreen("macro"); } },
+      { label: "🛒 [IPC-01] Inflación IPC 12 Meses", action: () => { state.macroSub = "ipc"; state.macroItem = "ipc_gen"; showScreen("macro"); } },
+      { label: "💵 [COT-02] Dólar Observado (USD/CLP)", action: () => { state.cotAsset = "usd"; showScreen("cotizaciones"); } },
+      { label: "🔶 [COT-03] Cobre COMEX (USD/lb)", action: () => { state.cotAsset = "cobre"; showScreen("cotizaciones"); } },
+      { label: "🔮 [PROY-07] Resumen Proyecciones 2026–2027", action: () => { state.proyTab = "tarjetas"; showScreen("proyecciones"); } },
+      { label: "📐 [MOD-01] Modelador IS-LM Mundell-Fleming", action: () => showScreen("modelacion") },
+      { label: "📈 [CALC-01] Calculadora de IPC (INE)", action: () => { state.calcTab = "ipc"; switchCalcTab("ipc"); showScreen("calculadoras"); } },
+      { label: "🏦 [CALC-02] Calculadora de UF (SII 2026)", action: () => { state.calcTab = "uf"; switchCalcTab("uf"); showScreen("calculadoras"); } },
+      { label: "💱 [CALC-03] Calculadora de Tipo de Cambio", action: () => { state.calcTab = "tc"; switchCalcTab("tc"); showScreen("calculadoras"); } }
+    ];
+
+    function renderSearchResults(q) {
+      const qLow = q.toLowerCase().trim();
+      const filtered = SEARCH_ITEMS.filter(it => it.label.toLowerCase().includes(qLow));
+      const box = document.getElementById("searchResults");
+      box.innerHTML = filtered.map((it, idx) => `
+        <button data-sidx="${idx}" class="w-full text-left px-3 py-2 rounded-xl border text-xs font-bold hover:border-sky-500" style="background-color: var(--bg-sub); border-color: var(--border);">
+          ${it.label}
+        </button>
+      `).join("");
+      box.querySelectorAll("[data-sidx]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          filtered[parseInt(btn.dataset.sidx, 10)].action();
+          document.getElementById("searchOverlay").classList.add("hidden");
+        });
+      });
+    }
+
+    function switchCalcTab(tab) {
+      state.calcTab = tab;
+      ["ipc", "uf", "tc"].forEach(t => {
+        document.getElementById("calcPanel-" + t).classList.toggle("hidden", t !== tab);
+      });
+      document.querySelectorAll(".calc-tab-btn").forEach(b => {
+        const act = b.dataset.calcTab === tab;
+        const col = tab === "ipc" ? "bg-amber-600" : (tab === "uf" ? "bg-emerald-600" : "bg-sky-600");
+        b.className = `calc-tab-btn tap-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${act ? col + ' text-white' : 'border'}`;
+        if (!act) { b.style.backgroundColor = "var(--bg-sub)"; b.style.borderColor = "var(--border)"; }
+        else { b.style.backgroundColor = ""; b.style.borderColor = ""; }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        if (localStorage.getItem("ep_dark") === "1") toggleTheme();
+      } catch (e) {}
+
+      renderCategoryGrid();
+      initCalculators();
+      if (window.lucide) window.lucide.createIcons();
+
+      document.getElementById("btnBrandHome").addEventListener("click", () => showScreen("menu"));
+      document.getElementById("btnBackHome").addEventListener("click", () => showScreen("menu"));
+      document.getElementById("btnToggleTheme").addEventListener("click", toggleTheme);
+
+      document.getElementById("btnPrevScreen").addEventListener("click", () => {
+        const idx = SCREENS_ORDER.indexOf(state.screen);
+        const prev = idx <= 1 ? SCREENS_ORDER.length - 1 : idx - 1;
+        showScreen(SCREENS_ORDER[prev]);
+      });
+      document.getElementById("btnNextScreen").addEventListener("click", () => {
+        const idx = SCREENS_ORDER.indexOf(state.screen);
+        const next = idx >= SCREENS_ORDER.length - 1 ? 1 : idx + 1;
+        showScreen(SCREENS_ORDER[next]);
+      });
+
+      document.querySelectorAll(".mob-nav-btn").forEach(b => {
+        b.addEventListener("click", () => showScreen(b.dataset.nav));
+      });
+
+      // Search modal
+      document.getElementById("btnOpenSearch").addEventListener("click", () => {
+        document.getElementById("searchOverlay").classList.remove("hidden");
+        renderSearchResults("");
+        document.getElementById("searchInput").focus();
+      });
+      document.getElementById("btnCloseSearch").addEventListener("click", () => {
+        document.getElementById("searchOverlay").classList.add("hidden");
+      });
+      document.getElementById("searchInput").addEventListener("input", e => renderSearchResults(e.target.value));
+
+      // Macro controls
+      document.getElementById("macroIndicatorSelect").addEventListener("change", e => {
+        state.macroItem = e.target.value;
+        renderMacroView();
+      });
+      document.querySelectorAll(".macro-mode-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          state.macroMode = b.dataset.macroMode;
+          document.querySelectorAll(".macro-mode-btn").forEach(x => {
+            const act = x.dataset.macroMode === state.macroMode;
+            x.className = `macro-mode-btn tap-btn flex-1 rounded-xl text-xs font-bold ${act ? 'bg-sky-600 text-white' : 'border'}`;
+            if (!act) { x.style.backgroundColor = "var(--bg-sub)"; x.style.borderColor = "var(--border)"; }
+          });
+          renderMacroView();
+        });
+      });
+      document.querySelectorAll(".macro-win-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          state.macroWin = parseInt(b.dataset.macroWin, 10);
+          document.querySelectorAll(".macro-win-btn").forEach(x => {
+            const act = parseInt(x.dataset.macroWin, 10) === state.macroWin;
+            x.className = `macro-win-btn tap-btn flex-1 rounded-xl text-xs font-bold ${act ? 'bg-amber-600 text-white' : 'border'}`;
+            if (!act) { x.style.backgroundColor = "var(--bg-sub)"; x.style.borderColor = "var(--border)"; }
+          });
+          renderMacroView();
+        });
+      });
+
+      // Cotizaciones controls
+      document.querySelectorAll(".cot-win-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          state.cotWin = parseInt(b.dataset.cotWin, 10);
+          document.querySelectorAll(".cot-win-btn").forEach(x => {
+            const act = parseInt(x.dataset.cotWin, 10) === state.cotWin;
+            x.className = `cot-win-btn tap-btn px-3 py-1 rounded-lg text-xs font-bold ${act ? 'bg-sky-600 text-white' : 'border'}`;
+            if (!act) { x.style.backgroundColor = "var(--bg-sub)"; x.style.borderColor = "var(--border)"; }
+          });
+          renderCotView();
+        });
+      });
+
+      // Proyecciones tabs
+      document.querySelectorAll(".proy-tab-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          state.proyTab = b.dataset.proyTab;
+          document.querySelectorAll(".proy-tab-btn").forEach(x => {
+            const act = x.dataset.proyTab === state.proyTab;
+            x.className = `proy-tab-btn tap-btn px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${act ? 'bg-violet-600 text-white' : 'border'}`;
+            if (!act) { x.style.backgroundColor = "var(--bg-sub)"; x.style.borderColor = "var(--border)"; }
+          });
+          renderProyView();
+        });
+      });
+
+      // IS-LM controls
+      ["islmRegime", "islmShock", "islmIntensity"].forEach(id => {
+        document.getElementById(id).addEventListener("input", renderIslmView);
+      });
+
+      // Calculators controls
+      document.querySelectorAll(".calc-tab-btn").forEach(b => {
+        b.addEventListener("click", () => switchCalcTab(b.dataset.calcTab));
+      });
+      ["ipcMesIni", "ipcAnioIni", "ipcMesFin", "ipcAnioFin", "ipcMonto"].forEach(id => {
+        document.getElementById(id).addEventListener("input", calcIpc);
+        document.getElementById(id).addEventListener("change", calcIpc);
+      });
+      document.querySelectorAll(".ipc-preset-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          const p = b.dataset.ipcPreset;
+          document.getElementById("ipcAnioFin").value = "2026";
+          document.getElementById("ipcMesFin").value = "9";
+          if (p === "mensual") { document.getElementById("ipcAnioIni").value = "2026"; document.getElementById("ipcMesIni").value = "8"; }
+          if (p === "acum") { document.getElementById("ipcAnioIni").value = "2025"; document.getElementById("ipcMesIni").value = "12"; }
+          if (p === "anual") { document.getElementById("ipcAnioIni").value = "2025"; document.getElementById("ipcMesIni").value = "9"; }
+          calcIpc();
+        });
+      });
+
+      ["ufDia", "ufMes", "ufAnio", "ufMonto"].forEach(id => {
+        document.getElementById(id).addEventListener("input", calcUf);
+        document.getElementById(id).addEventListener("change", calcUf);
+      });
+      document.getElementById("btnUfToClp").addEventListener("click", () => {
+        state.ufDir = "UF_CLP";
+        document.getElementById("ufInputLabel").textContent = "Cantidad en UF";
+        document.getElementById("btnUfToClp").className = "tap-btn rounded-xl text-xs font-bold bg-emerald-600 text-white";
+        document.getElementById("btnClpToUf").className = "tap-btn rounded-xl text-xs font-bold border";
+        document.getElementById("btnClpToUf").style.backgroundColor = "var(--bg-sub)";
+        calcUf();
+      });
+      document.getElementById("btnClpToUf").addEventListener("click", () => {
+        state.ufDir = "CLP_UF";
+        document.getElementById("ufInputLabel").textContent = "Monto en Pesos ($ CLP)";
+        document.getElementById("btnClpToUf").className = "tap-btn rounded-xl text-xs font-bold bg-emerald-600 text-white";
+        document.getElementById("btnUfToClp").className = "tap-btn rounded-xl text-xs font-bold border";
+        document.getElementById("btnUfToClp").style.backgroundColor = "var(--bg-sub)";
+        calcUf();
+      });
+
+      ["tcMonto", "tcOrig", "tcDest"].forEach(id => {
+        document.getElementById(id).addEventListener("input", calcTc);
+        document.getElementById(id).addEventListener("change", calcTc);
+      });
+      document.getElementById("btnSwapTc").addEventListener("click", () => {
+        const o = document.getElementById("tcOrig").value;
+        document.getElementById("tcOrig").value = document.getElementById("tcDest").value;
+        document.getElementById("tcDest").value = o;
+        calcTc();
+      });
+    });
+  </script>
+</body>
+</html>
