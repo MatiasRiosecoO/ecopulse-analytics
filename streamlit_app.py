@@ -304,6 +304,23 @@ def _aplicar_css_responsivo(oscuro: bool) -> None:
                 min-height: 42px !important;
                 touch-action: manipulation;
             }}
+            /* Tarjetas táctiles directas en Modo Celular (sin botón Abrir abajo) */
+            .ep-mob-card-wrap div.stButton > button {{
+                text-align: left !important;
+                justify-content: flex-start !important;
+                padding: 12px 14px !important;
+                background-color: {bg_card} !important;
+                color: {txt_prim} !important;
+                border: 1.5px solid {borde_card} !important;
+                border-left: 6px solid #0284C7 !important;
+                border-radius: 10px !important;
+                line-height: 1.38 !important;
+                white-space: pre-line !important;
+                min-height: 68px !important;
+            }}
+            .ep-mob-card-wrap div.stButton > button:hover {{
+                border-color: #38BDF8 !important;
+            }}
             /* Ajustes automáticos para pantalla de celular (< 768px) */
             @media (max-width: 768px) {{
                 .block-container {{
@@ -578,27 +595,36 @@ def _renderizar_tarjeta(
     bloque_items = f'<div class="ep-cat-items">{items_html}</div>' if items_html else ""
 
     with columna_st:
-        st.markdown(
-            f"""
-            <div class="ep-cat-card">
-                <div class="ep-cat-stripe" style="background-color:{color_hex};"></div>
-                <div class="ep-cat-body">
-                    <div class="ep-badge-row">
-                        <span class="ep-badge-num" style="background-color:{color_hex};">{badge_izq}</span>
-                        <span class="ep-badge-cnt" style="background-color:{bg_suave_eff}; color:{fg_suave_eff};">{badge_der}</span>
+        if st.session_state.get("modo_movil", False):
+            # En Modo Celular: la tarjeta completa es el botón táctil (sin botón "Abrir" abajo)
+            st.markdown('<div class="ep-mob-card-wrap">', unsafe_allow_html=True)
+            etq_movil = f"{icono}  {titulo}   [{badge_der}]\n{subtitulo}  ›"
+            if st.button(etq_movil, key=key_boton, use_container_width=True):
+                callback_fn()
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(
+                f"""
+                <div class="ep-cat-card">
+                    <div class="ep-cat-stripe" style="background-color:{color_hex};"></div>
+                    <div class="ep-cat-body">
+                        <div class="ep-badge-row">
+                            <span class="ep-badge-num" style="background-color:{color_hex};">{badge_izq}</span>
+                            <span class="ep-badge-cnt" style="background-color:{bg_suave_eff}; color:{fg_suave_eff};">{badge_der}</span>
+                        </div>
+                        <div class="ep-cat-title">{icono} &nbsp;{titulo}</div>
+                        <div class="ep-cat-sub" style="color:{color_hex if not st.session_state['modo_oscuro'] else '#38BDF8'};">{subtitulo}</div>
+                        <div class="ep-cat-desc">{descripcion}</div>
+                        {bloque_items}
                     </div>
-                    <div class="ep-cat-title">{icono} &nbsp;{titulo}</div>
-                    <div class="ep-cat-sub" style="color:{color_hex if not st.session_state['modo_oscuro'] else '#38BDF8'};">{subtitulo}</div>
-                    <div class="ep-cat-desc">{descripcion}</div>
-                    {bloque_items}
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button(texto_boton, key=key_boton, use_container_width=True):
-            callback_fn()
-            st.rerun()
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(texto_boton, key=key_boton, use_container_width=True):
+                callback_fn()
+                st.rerun()
 
 
 # -----------------------------------------------------------------------------
