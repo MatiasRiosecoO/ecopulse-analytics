@@ -304,22 +304,41 @@ def _aplicar_css_responsivo(oscuro: bool) -> None:
                 min-height: 42px !important;
                 touch-action: manipulation;
             }}
-            /* Tarjetas táctiles directas en Modo Celular (sin botón Abrir abajo) */
-            .ep-mob-card-wrap div.stButton > button {{
-                text-align: left !important;
-                justify-content: flex-start !important;
-                padding: 12px 14px !important;
-                background-color: {bg_card} !important;
-                color: {txt_prim} !important;
-                border: 1.5px solid {borde_card} !important;
-                border-left: 6px solid #0284C7 !important;
-                border-radius: 10px !important;
-                line-height: 1.38 !important;
-                white-space: pre-line !important;
-                min-height: 68px !important;
+            /* Tarjeta completa clickeable (presionar descripción o cualquier área entra directo, sin botón Abrir abajo) */
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] > div[data-testid="stMarkdown"] .ep-clickable-card-marker) {{
+                position: relative !important;
+                gap: 0 !important;
+                margin-bottom: 10px !important;
             }}
-            .ep-mob-card-wrap div.stButton > button:hover {{
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] > div[data-testid="stMarkdown"] .ep-clickable-card-marker) > div[data-testid="stElementContainer"]:has(button) {{
+                position: absolute !important;
+                inset: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                z-index: 10 !important;
+            }}
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] > div[data-testid="stMarkdown"] .ep-clickable-card-marker) > div[data-testid="stElementContainer"]:has(button) > div,
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] > div[data-testid="stMarkdown"] .ep-clickable-card-marker) > div[data-testid="stElementContainer"]:has(button) button {{
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100% !important;
+                opacity: 0 !important;
+                cursor: pointer !important;
+                border: none !important;
+                background: transparent !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }}
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] > div[data-testid="stMarkdown"] .ep-clickable-card-marker):hover .ep-cat-card {{
                 border-color: #38BDF8 !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(2, 132, 199, 0.16);
+            }}
+            .ep-cat-card {{
+                transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+                cursor: pointer;
             }}
             /* Ajustes automáticos para pantalla de celular (< 768px) */
             @media (max-width: 768px) {{
@@ -595,25 +614,20 @@ def _renderizar_tarjeta(
     bloque_items = f'<div class="ep-cat-items">{items_html}</div>' if items_html else ""
 
     with columna_st:
-        if st.session_state.get("modo_movil", False):
-            # En Modo Celular: la tarjeta completa es el botón táctil (sin botón "Abrir" abajo)
-            st.markdown('<div class="ep-mob-card-wrap">', unsafe_allow_html=True)
-            etq_movil = f"{icono}  {titulo}   [{badge_der}]\n{subtitulo}  ›"
-            if st.button(etq_movil, key=key_boton, use_container_width=True):
-                callback_fn()
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
+        with st.container():
             st.markdown(
                 f"""
-                <div class="ep-cat-card">
+                <div class="ep-clickable-card-marker ep-cat-card">
                     <div class="ep-cat-stripe" style="background-color:{color_hex};"></div>
                     <div class="ep-cat-body">
                         <div class="ep-badge-row">
                             <span class="ep-badge-num" style="background-color:{color_hex};">{badge_izq}</span>
                             <span class="ep-badge-cnt" style="background-color:{bg_suave_eff}; color:{fg_suave_eff};">{badge_der}</span>
                         </div>
-                        <div class="ep-cat-title">{icono} &nbsp;{titulo}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                            <div class="ep-cat-title">{icono} &nbsp;{titulo}</div>
+                            <span style="font-size:1.2rem; font-weight:800; color:{color_hex if not st.session_state['modo_oscuro'] else '#38BDF8'};">›</span>
+                        </div>
                         <div class="ep-cat-sub" style="color:{color_hex if not st.session_state['modo_oscuro'] else '#38BDF8'};">{subtitulo}</div>
                         <div class="ep-cat-desc">{descripcion}</div>
                         {bloque_items}
@@ -834,7 +848,7 @@ elif pantalla == "presentacion":
         st.rerun()
     st.markdown(f"### 👤 {ecopulse.AUTOR_PERFIL['nombre']}")
     st.info(ecopulse.AUTOR_PERFIL["resumen"])
-    col_p1, col_p2 = st.columns(1 if movil_act else 2)
+    col_p1, col_p2 = st.columns(2)
     with col_p1:
         st.markdown("#### 💼 Trayectoria Profesional")
         for item_exp in ecopulse.AUTOR_PERFIL.get("experiencia", []):
@@ -851,7 +865,7 @@ elif pantalla == "presentacion":
 
 # === PANTALLA E: SUITE DE 3 CALCULADORAS OFICIALES ===
 elif pantalla == "calculadoras_hub":
-    c_cb1, c_cb2, c_cb3, c_cb4 = st.columns(4 if not movil_act else 2)
+    c_cb1, c_cb2, c_cb3, c_cb4 = st.columns(4)
     with c_cb1:
         if st.button("🏠 Menú", key="calc_home_btn", use_container_width=True):
             ir_a_pantalla("menu_categorias")
@@ -904,7 +918,7 @@ elif pantalla == "calculadoras_hub":
         monto_ajustado = round(monto_ipc_in * factor_12d)
         dif_pesos = monto_ajustado - round(monto_ipc_in)
 
-        k1, k2, k3 = st.columns(3 if not movil_act else 1)
+        k1, k2, k3 = st.columns(3)
         k1.metric("Valor Ajustado ($ CLP)", f"$ {_fmt_clp(monto_ajustado, 0)}", f"{'+' if dif_pesos >= 0 else '-'}$ {_fmt_clp(abs(dif_pesos), 0)}")
         k2.metric("Variación Oficial (INE)", f"{var_1d:+.1f} %".replace(".", ","), f"{m_ini_nom[:3]} {a_ini} ➔ {m_fin_nom[:3]} {a_fin}")
         k3.metric("Factor (12 decimales)", f"{factor_12d:.6f}".replace(".", ","), f"{ipc_0:.2f} ➔ {ipc_1:.2f} pts")
@@ -969,7 +983,7 @@ else:
     sub_k = info_r["subcategoria_clave"]
 
     # Barra superior de navegación táctil
-    b1, b2, b3, b4 = st.columns(4 if not movil_act else 2)
+    b1, b2, b3, b4 = st.columns(4)
     with b1:
         if st.button("◀ Anterior", key="top_prev", use_container_width=True):
             ir_a_pantalla("vista_analitica", ecopulse.ORDEN_CLAVES_VISTAS[(idx_v - 1) % len(ecopulse.ORDEN_CLAVES_VISTAS)])
@@ -1029,7 +1043,7 @@ else:
         _mostrar_figura_mpl(fig_v, f"{clave_v}.png")
 
     elif clave_v in ecopulse.CLAVES_VISTAS_PROYECCIONES:
-        cp1, cp2, cp3 = st.columns(3 if not movil_act else 1)
+        cp1, cp2, cp3 = st.columns(3)
         with cp1:
             corte_s = st.selectbox(
                 "🔮 Corte COVID:",
@@ -1066,7 +1080,7 @@ else:
         _mostrar_figura_mpl(fig_v, f"{clave_v}.png")
 
     elif clave_v == "modelo_islm_mf":
-        cm1, cm2, cm3, cm4 = st.columns(4 if not movil_act else 2)
+        cm1, cm2, cm3, cm4 = st.columns(4)
         with cm1:
             reg_mf = st.selectbox("Régimen:", ["flexible", "fijo"], format_func=lambda x: "TC Flexible" if x == "flexible" else "TC Fijo")
             ecopulse.ESTADO_MODELADOR_ISLM_MF["regimen"] = reg_mf

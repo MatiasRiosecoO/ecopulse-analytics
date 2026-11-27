@@ -636,9 +636,9 @@
       ];
       const grid = document.getElementById("categoryGrid");
       grid.innerHTML = cats.map(c => `
-        <div role="button" tabindex="0" data-cat-open="${c.id}" class="ep-card overflow-hidden flex flex-col justify-between cursor-pointer active:scale-[0.98] hover:border-sky-500 transition">
+        <div role="button" tabindex="0" data-cat-open="${c.id}" class="ep-card overflow-hidden flex flex-col justify-between cursor-pointer active:scale-[0.98] hover:border-sky-500 hover:shadow-md transition">
           <div>
-            <div style="height:6px; background-color:${c.col};"></div>
+            <div style="height:7px; background-color:${c.col};"></div>
             <div class="p-4">
               <div class="flex items-center justify-between mb-2">
                 <span class="px-2 py-0.5 rounded text-[10px] font-extrabold text-white" style="background-color:${c.col};">${c.badge}</span>
@@ -646,15 +646,10 @@
               </div>
               <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-extrabold mb-0.5">${c.ico} ${c.tit}</h2>
-                <span class="md:hidden text-lg font-extrabold opacity-70" style="color:${c.col};">›</span>
+                <span class="text-xl font-extrabold opacity-80" style="color:${c.col};">›</span>
               </div>
               <div class="text-xs font-bold mb-1.5" style="color:${c.col};">${c.sub}</div>
               <p class="text-xs leading-relaxed" style="color: var(--text-sec);">${c.desc}</p>
-            </div>
-          </div>
-          <div class="hidden md:block px-4 pb-4">
-            <div class="tap-btn w-full py-2 px-3 rounded-xl text-xs font-extrabold text-white text-center" style="background-color:${c.col};">
-              Abrir ${c.tit} ➔
             </div>
           </div>
         </div>
